@@ -34,9 +34,11 @@ class DBOrderHandler:
         return raw_data.uid
 
     def persist_order(self, order, raw_data_uid):
-        order_id = order["order_id"]
+        order_id = order.get("order_id")
+        result_date = order.get("result_date")
         filters = {
-            'order_id': order_id
+            'order_id': order_id,
+            'result_date': result_date
         }
         found = Orders.get(**filters)
         if found:
@@ -44,7 +46,7 @@ class DBOrderHandler:
 
             #
             logger.log(
-                "info", f"order with the same order_id ({order_id}) is already persisted, skipping ...")
+                "info", f"order with the same order_id ({order_id}) resulted ({result_date}) is already persisted, skipping ...")
             return
 
         hspc = has_special_char(order_id)
