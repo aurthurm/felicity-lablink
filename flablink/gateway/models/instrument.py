@@ -16,5 +16,5 @@ class Instrument(DBModel):
     auto_reconnect = Column(Boolean, default=True) # auto reconnect on connection lost
     connection_type = Column(String(10), nullable=True) # tcpip, serial
     protocol_type = Column(String(10), nullable=True) # astm, hl7
-    socket_type = Column(Boolean, nullable=True) # client or server
+    socket_type = Column(String(10), nullable=True) # client or server
 

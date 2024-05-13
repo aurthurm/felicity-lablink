@@ -1,8 +1,8 @@
-"""v2rc1
+"""v2rc01
 
-Revision ID: 9fc1c9ffb0ef
+Revision ID: 81243125d6b7
 Revises: f1db4f15b5f8
-Create Date: 2024-05-13 16:48:16.396967
+Create Date: 2024-05-13 17:06:08.288488
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '9fc1c9ffb0ef'
+revision = '81243125d6b7'
 down_revision = 'f1db4f15b5f8'
 branch_labels = None
 depends_on = None
@@ -31,7 +31,7 @@ def upgrade() -> None:
     sa.Column('auto_reconnect', sa.Boolean(), nullable=True),
     sa.Column('connection_type', sa.String(length=10), nullable=True),
     sa.Column('protocol_type', sa.String(length=10), nullable=True),
-    sa.Column('socket_type', sa.Boolean(), nullable=True),
+    sa.Column('socket_type', sa.String(length=10), nullable=True),
     sa.PrimaryKeyConstraint('uid')
     )
     op.create_index(op.f('ix_instruments_uid'), 'instruments', ['uid'], unique=False)
@@ -82,6 +82,17 @@ def upgrade() -> None:
     sa.UniqueConstraint('result')
     )
     op.create_index(op.f('ix_result_exclusions_uid'), 'result_exclusions', ['uid'], unique=False)
+    op.create_table('result_translations',
+    sa.Column('created_at', sa.TIMESTAMP(), nullable=False),
+    sa.Column('updated_at', sa.TIMESTAMP(), nullable=False),
+    sa.Column('uid', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('original', sa.String(length=100), nullable=True),
+    sa.Column('translated', sa.String(length=100), nullable=True),
+    sa.Column('reason', sa.String(length=255), nullable=True),
+    sa.PrimaryKeyConstraint('uid'),
+    sa.UniqueConstraint('original', 'translated')
+    )
+    op.create_index(op.f('ix_result_translations_uid'), 'result_translations', ['uid'], unique=False)
     op.create_table('lims_mappings',
     sa.Column('created_at', sa.TIMESTAMP(), nullable=False),
     sa.Column('updated_at', sa.TIMESTAMP(), nullable=False),
@@ -107,6 +118,8 @@ def downgrade() -> None:
     op.drop_column('orders', 'instrument_uid')
     op.drop_index(op.f('ix_lims_mappings_uid'), table_name='lims_mappings')
     op.drop_table('lims_mappings')
+    op.drop_index(op.f('ix_result_translations_uid'), table_name='result_translations')
+    op.drop_table('result_translations')
     op.drop_index(op.f('ix_result_exclusions_uid'), table_name='result_exclusions')
     op.drop_table('result_exclusions')
     op.drop_index(op.f('ix_link_settings_uid'), table_name='link_settings')
