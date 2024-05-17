@@ -1,8 +1,11 @@
 import serial
+import time 
 from serial.serialutil import to_bytes
 
 from flablink.gateway.link.schema import InstrumentConfig
 from flablink.gateway.logger import Logger
+from flablink.gateway.extensions.event.base import EventType
+from flablink.gateway.extensions.event.event import post_event
 from flablink.gateway.link.base import AbstractLink
 from flablink.gateway.link.config import ProtocolType
 
@@ -274,7 +277,7 @@ class SerialLink(AbstractLink):
         self.name: str = instrument_config.name
         self.path: str = instrument_config.path
         self.baudrate: int = instrument_config.baud_rate
-        self.protocol: ProtocolType = instrument_config.protocol_type
+        self.protocol_type: ProtocolType = instrument_config.protocol_type
         self.auto_reconnect: bool = instrument_config.auto_reconnect
         # base
         self._received_messages = list()
@@ -282,30 +285,63 @@ class SerialLink(AbstractLink):
         self.messages = None
         self.response = None
 
-    def start_server(self):
+    def start_server(self, trials=1):
         """Start serial server"""
+        logger.log("info", "Starting serial server ...")
 
-        with serial.Serial(self.path, self.baudrate, timeout=2) as ser:
-            print("Listening on path {}.".format(self.path))
-            while True:
-                # read until a new line is found
-                line = ser.readline().decode(encoding="utf-8")
-                if line:
-                    # Is this a new session?
-                    if not self.is_open():
-                        self.open()
+        post_event(EventType.ACTIVITY_STREAM, **{
+            'id': self.uid,
+            'message': 'connecting',
+            'connecting': True,
+            'connected': False,
+        })
 
-                    # Process the new message line 
-                    self.process(line)
+        try:
+            with serial.Serial(self.path, self.baudrate, timeout=2) as ser:
+                print("Listening on path {}.".format(self.path))        
+                post_event(EventType.ACTIVITY_STREAM, **{
+                    'id': self.uid,
+                    'message': 'connected',
+                    'connecting': False,
+                    'connected': True,
+                })
+                while True:
+                    # read until a new line is found
+                    line = ser.readline().decode(encoding="utf-8")
+                    if line:
+                        # Is this a new session?
+                        if not self.is_open():
+                            self.open()
 
-                    # Does the receiver has to send something back?
-                    response = self.get_response()
-                    if response:
-                        if isinstance(response, str):
-                            # convert to bytes
-                            response = response.encode()
-                        socket = serial.Serial(self.port, self.baudrate, timeout=10)
-                        socket.write(to_bytes(response))
+                        # Process the new message line 
+                        self.process(line)
+
+                        # Does the receiver has to send something back?
+                        response = self.get_response()
+                        if response:
+                            if isinstance(response, str):
+                                # convert to bytes
+                                response = response.encode()
+                            socket = serial.Serial(self.path, self.baudrate, timeout=10)
+                            socket.write(to_bytes(response))
+        except serial.SerialException as e:
+            logger.log("info", f"SerialException: {e}")
+        except UnicodeDecodeError as e:
+            logger.log("info", f"UnicodeDecodeError: {e}")
+        except Exception as e:
+            logger.log("info", f"An unexpected error occured: {e}")
+        finally:     
+            post_event(EventType.ACTIVITY_STREAM, **{
+                'id': self.uid,
+                'message': 'disconnected',
+                'connecting': False,
+                'connected': False,
+            })
+            if self.auto_reconnect and trials <= 5:
+                logger.log("info", f"Reconnecting ... trial: {trials}")
+                trials += 1
+                time.sleep(5)
+                self.start_server(trials)
 
     @property
     def current_message(self):
@@ -322,12 +358,28 @@ class SerialLink(AbstractLink):
         self.messages = []
         self.response = None
         self.establishment = False
+          
+        post_event(EventType.ACTIVITY_STREAM, **{
+            'id': self.uid,
+            'message': 'connected',
+            'connecting': False,
+            'connected': True,
+            'transmitting': True,
+        })
 
     def close(self):
         logger.log("info", "Closing session: neutral state")
         self.messages = None
         self.establishment = False
         self._received_messages = list()
+          
+        post_event(EventType.ACTIVITY_STREAM, **{
+            'id': self.uid,
+            'message': 'connected',
+            'connecting': False,
+            'connected': True,
+            'transmitting': False,
+        })
 
     def to_str(self, command):
         if not command:
@@ -360,12 +412,11 @@ class SerialLink(AbstractLink):
             elif EOT in line:
                 # Received an End Of Transmission. Resume and enter to neutral
                 # state
-                self.handle_eot(line)
+                self.handle_eot()
                 return
 
             else:
-                logger.log(
-                    "info", " No valid message. No <STX> or <EOT> received")
+                logger.log("info", " No valid message. No <STX> or <EOT> received")
         else:
             logger.log("info", "Establishment phase not initiated")
 
@@ -429,7 +480,7 @@ class SerialLink(AbstractLink):
 
         self.messages.append(message)
         if message.is_complete():
-            logger.log("info", "Message completed:")
+            logger.log("info", "Message completed: show message")
             # Print out the message
             self.show_message(message)
         else:
@@ -439,7 +490,7 @@ class SerialLink(AbstractLink):
 
     def get_response(self):
         if self.response:
-            logger.log("debug", "<- {}".format(self.to_str(self.response)))
+            logger.log("debug", f"<- {self.to_str(self.response)}")
         resp = self.response
         self.response = None
         return resp
@@ -447,12 +498,12 @@ class SerialLink(AbstractLink):
     def handle_eot(self):
         """Handles an End Of Transmission message
         """
-        logger.log("info", "Transfer phase completed")
+        logger.log("info", "Transfer phase completed : handle_eot")
         message = self.current_message
         if (message and message.is_complete()) or not self._received_messages:
             self.show_message(message)
-        else:
-            super(SerialLink, self).handle_eot(self.current_message)
+            # else:
+            self.eot_offload(self.uid, message.text())
 
         # Go to neutral state
         self.response = None

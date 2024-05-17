@@ -1,22 +1,23 @@
-from pydantic import BaseModel
-
-
-class RawDataSchemaOut(BaseModel):
-    uid: str
-    content: str    
-    instrument_uid: str | None
+from pydantic import BaseModel, validator
 
 
 class InstrumentSchema(BaseModel):
-    uid: str
     name: str
-    code: str | None
-    host: str | None
-    port: int | None
-    path: str | None
-    baud_rate: int | None
+    code: str | None = None
+    host: str | None = None
+    port: int | None = None
+    path: str | None = None
+    baud_rate: int | None = None
     auto_reconnect: bool
-    connection_type: str | None
-    protocol_type: str | None
-    socket_type: str | None
+    connection_type: str | None = None
+    protocol_type: str | None = None
+    socket_type: str | None = None
 
+
+class InstrumentSchemaDB(InstrumentSchema):
+    uid: int
+
+
+class InstrumentConnection(BaseModel):
+    uid: int
+    action: str

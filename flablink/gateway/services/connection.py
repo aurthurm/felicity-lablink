@@ -1,74 +1,57 @@
-from typing import Dict
-
-from fastapi import Depends
-
-from flablink.gateway.extensions.event.base import EventType
-from flablink.gateway.extensions.event.event import post_event
+from flablink.gateway.link.base import AbstractLink
 from flablink.gateway.link.schema import InstrumentConfig
-from flablink.gateway.link.socket import  InstrumentMLLP
+from flablink.gateway.link.serial import SerialLink
+from flablink.gateway.link.socket import SocketLink
 from flablink.gateway.models import Instrument
 from flablink.gateway.services.instrument import InstrumentService
+from flablink.gateway.logger import Logger
 
+logger = Logger(__name__, __file__)
 
 class ConnectionService:
-    def __init__(self, instrument_service: InstrumentService = Depends()):
-        self.instrument_service = instrument_service
-        self.sessions: Dict[str, InstrumentMLLP] = {}
+    def __init__(self):
+        self.instrument_service = InstrumentService()
 
-    def initialise(self):
+    def get_link_for(self, uid: int):
+        instrument = self.instrument_service.find_one(uid)
+        return self._get_link(instrument)
+
+    def get_links(self):
         instruments = self.instrument_service.find_all()
-        for _inst in instruments:
-            self._add_session(_inst)
+        links = [(self._get_link(instrument)) for instrument in instruments]
+        return links
 
-        self.connect_all()
-
-    def connect_all(self):
-        for _key in self.sessions.keys():
-            self.sessions[_key].connect()
-
-    def add(self, instrument_uid: str):
-        instrument = self.instrument_service.find_one(instrument_uid)
-        self._add_session(instrument)
-
-    def remove(self, instrument_uid: str):
-        self._remove_session(instrument_uid)
+    def connect(self, link: AbstractLink):
+        link.start_server()
     
-    def _add_session(self, instrument: Instrument):
-        if instrument.uid not in self.sessions or instrument.auto_reconnect:
-            post_event(EventType.ACTIVITY_STREAM, {
-                'id': instrument.uid,
-                'message': 'connecting',
-                'connecting': True,
-                'connected': False,
-            })
+    def _get_link(self, instrument: Instrument):
+        match instrument.connection_type:
+            case "tcpip":
+                return self._get_tcp_link(instrument)
+            case "serial":
+                return self._get_serial_link(instrument)
+            case _:
+                raise ValueError("Invalid connection type")
 
-            match instrument.connection_type:
-                case "tcpip":
-                    self._init_tcpip_connection(instrument)
-                case "serial":
-                    self._init_serial_connections(instrument)
-
-    def _remove_session(self, instrument_uid: str):
-        if instrument_uid in self.sessions:
-            self.sessions[instrument_uid].close()
-            del self.sessions[instrument_uid]
-
-            post_event(EventType.ACTIVITY_STREAM, {
-                'id': instrument_uid,
-                'message': 'disconnected',
-                'connecting': False,
-                'connected': False,
-            })
-
-    def _init_tcpip_connection(self, instrument: Instrument):
-        _config = InstrumentConfig({
+    def _get_tcp_link(self, instrument: Instrument):
+        _config = InstrumentConfig(**{
+            'uid': instrument.uid,
+            'code': instrument.code,
             'name': instrument.name,
-            'address': instrument.host,
+            'host': instrument.host,
             'port': instrument.port,
-            'connection_type': instrument.connection_type,
-            'protocol': instrument.protocol,
+            'socket_type': instrument.socket_type,
+            'protocol_type': instrument.protocol_type,
         }) 
-        self.sessions[instrument.uid] = InstrumentMLLP(_config)
+        return SocketLink(_config)
 
-    def _init_serial_connections(self, instrument: Instrument):
-        ...
+    def _get_serial_link(self, instrument: Instrument):
+        _config = InstrumentConfig(**{
+            'uid': instrument.uid,
+            'code': instrument.code,
+            'name': instrument.name,
+            'path': instrument.path,
+            'baud_rate': instrument.baud_rate,
+            'protocol_type': instrument.protocol_type,
+        }) 
+        return SerialLink(_config)

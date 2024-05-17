@@ -1,5 +1,6 @@
 from sqlalchemy import Column, ForeignKey, Integer, SmallInteger, String, Boolean, UniqueConstraint
 from sqlalchemy.dialects.mysql import LONGTEXT
+from sqlalchemy.orm import relationship
 
 from flablink.gateway.db.base_model import DBModel
 
@@ -33,6 +34,7 @@ class Order(DBModel):
     )
 
 
+
 class ResultExclusions(DBModel):
     __tablename__ = 'result_exclusions'
     __table_args__ = {'extend_existing': True}
@@ -54,20 +56,10 @@ class ResultTranslation(DBModel):
     )
 
 
-class LimsKeyword(DBModel):
+class KeywordMapping(DBModel):
     __tablename__ = 'lims_keywords'
     __table_args__ = {'extend_existing': True}
 
     keyword = Column(String(50), unique=True)
-
-
-class LimsMapping(DBModel):
-    __tablename__ = 'lims_mappings'
-    __table_args__ = {'extend_existing': True}
-
-    lims_keyword_uid = Column(
-        Integer,
-        ForeignKey("lims_keywords.uid", ondelete="CASCADE"),
-        nullable=True
-    )
-    mapping = Column(String(50))
+    mappings = Column(String(255))
+    is_active = Column(Boolean, default=False)

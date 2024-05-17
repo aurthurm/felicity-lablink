@@ -1,5 +1,6 @@
 from sqlalchemy import Column, ForeignKey, Integer
 from sqlalchemy.dialects.mysql import LONGTEXT
+from sqlalchemy.orm import relationship
 
 from flablink.gateway.db.base_model import DBModel
 
@@ -14,3 +15,4 @@ class RawData(DBModel):
         ForeignKey("instruments.uid", ondelete="CASCADE"),
         nullable=True
     )
+    instrument = relationship("Instrument", lazy="selectin")

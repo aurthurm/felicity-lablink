@@ -1,0 +1,15 @@
+https://github.com/johnpaulett/python-hl7/               ok
+https://github.com/crs4/hl7apy                           ok
+# https://github.com/Tremmors/pyMedicalSimulators create messages
+
+https://github.com/juli-vert/HL7broker                    study Streams
+
+https://github.com/svituz/fhir-server
+
+
+
+
+
+
+
+

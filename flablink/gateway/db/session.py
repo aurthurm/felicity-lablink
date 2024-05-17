@@ -1,3 +1,4 @@
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
@@ -9,6 +10,7 @@ logger = Logger(__name__, __file__)
 db_url = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}?charset=utf8mb4"
 engine = create_engine(db_url, pool_pre_ping=True, echo=False, future=True)
 # session = scoped_session(sessionmaker(bind=engine, autocommit=True))
+job_store = SQLAlchemyJobStore(url=db_url)  # , engine_options={"future": True}
 
 
 def test_db_connection() -> bool:    

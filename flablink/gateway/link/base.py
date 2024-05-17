@@ -1,13 +1,14 @@
 import threading
 
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from flablink.gateway.logger import Logger
 from flablink.gateway.services.transformer import Transformer
+from flablink.gateway.extensions.event.base import EventType
+from flablink.gateway.extensions.event.event import post_event
 
 logger = Logger(__name__, __file__)
 
-
-class AbstractLink(ABCMeta):
+class AbstractLink(ABC):
 
     @abstractmethod
     def start_server(self, **kwargs):
@@ -37,13 +38,15 @@ class AbstractLink(ABCMeta):
     def get_response(self):
         raise NotImplementedError("get_response is not implemented")
 
-    def handle_eot(self, messages):
+    def eot_offload(self, instrument_uid, messages):
+        """End of Transmission -> offload processed messages to storage"""
+        logger.log("info", "Offloading to storage...")
         # Send to result repository in a new Thread
-        thread = threading.Thread(target=self.push_to_order_repository,
-                                    args=(messages,))
+        thread = threading.Thread(target=self._push_to_order_repository,
+                                    args=(instrument_uid, messages,))
         thread.start()
 
-    def push_to_order_repository(self, messages):
+    def _push_to_order_repository(self, instrument_uid, messages):
         if isinstance(messages, str):
             messages = [messages]
 
@@ -51,7 +54,7 @@ class AbstractLink(ABCMeta):
 
         while len(messages) > 0:
             msg = messages.pop()
-            transformer.transform_message(msg)
+            transformer.transform_message(instrument_uid, msg)
 
     def show_message(self, message):
         """Prints the messaged in stdout
@@ -59,6 +62,14 @@ class AbstractLink(ABCMeta):
         if not message:
             return
 
-        print("-" * 80)
-        print(message)
-        print("-" * 80)
+        # print("-" * 80)
+        logger.log("info", "-" * 80)
+        # print(message)
+        logger.log("info", f"{message}")
+        # print("-" * 80)
+        logger.log("info", "-" * 80)
+
+        post_event(EventType.ACTIVITY_LOG, **{
+            'id': self.uid,
+            'message': message,
+        })

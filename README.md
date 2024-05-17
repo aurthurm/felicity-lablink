@@ -63,6 +63,11 @@ Check for the latest device connected to your computer by:
     $ s -lh /dev/
     
 
+### add user to dialout
+You might get a permission denied to accedd usb and serial ports: Add and reboot
+    $ sudo gpasswd -a $USER dialout or sudo usermod -a -G dialout $USER
+
+
 ### Simulation Tests
 Simulation test with socat:
 

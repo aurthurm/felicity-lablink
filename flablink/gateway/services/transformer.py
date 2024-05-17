@@ -13,9 +13,9 @@ class Transformer: # previously OrderService
         self._converter = None
         self._order_service = None
 
-    def transform_message(self, message):
+    def transform_message(self, instrument_uid, message):
         # persist raw_data
-        rawdata_uid = self.order_service.persist_raw(message)
+        rawdata_uid = self.order_service.persist_raw(instrument_uid, message)
 
         payloads = self.adapter.process(message)
         if isinstance(payloads, dict):
@@ -28,7 +28,7 @@ class Transformer: # previously OrderService
             order_result = order.get("result", None)
             logger.log(
                 "info", f"order for db:: order_id -> {order_id} -> result -> {order_result}")
-            self.order_service.persist_order(order, rawdata_uid)
+            self.order_service.persist_order(instrument_uid, order, rawdata_uid)
 
     def handle_replay(self, raw_data):
         payloads = self.adapter.process(raw_data.content)

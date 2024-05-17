@@ -2,12 +2,12 @@
 
 from setuptools import setup, find_packages
 
-version = "1.1.1"
+version = "2.0.0.rc01"
 
 setup(
-    name="felicity.serial",
+    name="Felicity LabLink",
     version=version,
-    description="",
+    description="Felicity LabLink unites lab instruments and LIMS, streamlining workflows and bringing joy to your lab's day.",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     license="MIT",

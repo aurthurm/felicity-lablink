@@ -1,8 +1,7 @@
 from flablink.gateway.models.order import (
     ResultExclusions,
     ResultTranslation,
-    LimsKeyword,
-    LimsMapping
+    KeywordMapping
 )
 from flablink.gateway.models.settings import (
     LinkSettings,
@@ -55,15 +54,11 @@ def seed_keyword_mappings():
         "HPV": ["HPV", "HPV01", ]
     }
 
-    for _kw in KEYWORDS_MAPPING.keys():
-        kewyword = LimsKeyword().get(keyword=_kw)
+    for kw, mp in KEYWORDS_MAPPING.items():
+        kewyword = KeywordMapping().get(keyword=kw)
         if not kewyword:
-            kewyword = LimsKeyword(keyword=_kw).save()
-
-        for _m in KEYWORDS_MAPPING[_kw]:
-            if not LimsMapping().get(lims_keyword_uid=kewyword.uid, mapping=_m):
-                LimsMapping(lims_keyword_uid=kewyword.uid, mapping=_m).save()
-
+            kewyword = KeywordMapping(keyword=kw).save()
+        kewyword.update(mappings=', '.join(mp), is_active=True)
 
 def seed_result_exclusions():
     EXCLUDE_RESULTS = ["ValueNotSet"]

@@ -1,73 +1,53 @@
-from sqlalchemy import Column, ForeignKey, Integer, SmallInteger, String, Boolean, UniqueConstraint
-from sqlalchemy.dialects.mysql import LONGTEXT
-
-from flablink.gateway.db.base_model import DBModel
+from pydantic import BaseModel
+from flablink.gateway.schemas.instrument import InstrumentSchema
 
 
-class Order(DBModel):
-    __tablename__ = "orders"
-    __table_args__ = {'extend_existing': True}
+# OrderSchema
+class OrderSchema(BaseModel):
+    order_id: str
+    test_id: str | None = None
+    keywork: str
+    instrument: str | None = None
+    result: str
+    result_date: str | None = None
+    unit: str | None = None
+    comment: str | None = None
+    is_sync_allowed: bool
+    synced: int
+    sync_date: str | None = None
+    sync_comment: str | None = None
+    raw_message: str | None = None
+    raw_data_uid: int
+    instrument_uid: int | None = None
 
-    order_id = Column(String(50), nullable=False)
-    test_id = Column(String(50), nullable=True)
-    keywork = Column(String(50), nullable=False)
-    instrument = Column(String(50), nullable=True)
-    result = Column(String(255), nullable=False)
-    result_date = Column(String(25), nullable=False)
-    unit = Column(String(20), nullable=True)
-    comment = Column(String(255), nullable=True)
-    is_sync_allowed = Column(Boolean, nullable=False, default=True)
-    synced = Column(SmallInteger, nullable=False, default=False)
-    sync_date = Column(String(25), nullable=True)
-    sync_comment = Column(String(255), nullable=True)
-    raw_message = Column(LONGTEXT, nullable=True)
-    raw_data_uid = Column(
-        Integer,
-        ForeignKey("raw_data.uid", ondelete="CASCADE"),
-        nullable=False
-    )
-    instrument_uid = Column(
-        Integer,
-        ForeignKey("instruments.uid", ondelete="CASCADE"),
-        nullable=True
-    )
+class OrderSchemaDB(OrderSchema):
+    uid: int
 
 
-class ResultExclusions(DBModel):
-    __tablename__ = 'result_exclusions'
-    __table_args__ = {'extend_existing': True}
+# ResultExclusions
+class ResultExclusionsSchema(BaseModel):
+    result: str
+    reason: str | None = None
 
-    result = Column(String(100), unique=True)
-    reason = Column(String(255), nullable=True)
-
-
-class ResultTranslation(DBModel):
-    __tablename__ = 'result_translations'
-    __table_args__ = {'extend_existing': True}
-
-    original = Column(String(100))
-    translated = Column(String(100))
-    reason = Column(String(255), nullable=True)
-
-    __table_args__ = (
-        UniqueConstraint('original', 'translated'),
-    )
+class ResultExclusionsSchemaDB(ResultExclusionsSchema):
+    uid: int
 
 
-class LimsKeyword(DBModel):
-    __tablename__ = 'lims_keywords'
-    __table_args__ = {'extend_existing': True}
+# ResultTranslation
+class ResultTranslationSchema(BaseModel):
+    original: str
+    translated: str
+    reason: str | None = None
 
-    keyword = Column(String(50), unique=True)
+class ResultTranslationSchemaDB(ResultTranslationSchema):
+    uid: int
 
 
-class LimsMapping(DBModel):
-    __tablename__ = 'lims_mappings'
-    __table_args__ = {'extend_existing': True}
+# KeywordMapping
+class KeywordMappingSchema(BaseModel):
+    keyword: str
+    mappings: str
+    is_active: bool
 
-    lims_keyword_uid = Column(
-        Integer,
-        ForeignKey("lims_keywords.uid", ondelete="CASCADE"),
-        nullable=True
-    )
-    mapping = Column(String(50))
+class KeywordMappingSchemaDB(KeywordMappingSchema):
+    uid: int

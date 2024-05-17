@@ -39,21 +39,38 @@ class SocketLink(AbstractLink):
         self.socket = None
         self.is_connected = False
         self.encoding = "utf-8"
-        #  buffer and messages
+        # base
+        self._received_messages = list()
+        self.establishment = False
+        self.response = None
         self._buffer = b''
-        self._messages = []
         # ACK
         self.expect_ack = False
 
     def start_server(self):
+        """Start serial server"""
+        logger.log("info", "Starting socket server ...")
+
+        post_event(EventType.ACTIVITY_STREAM, **{
+            'id': self.uid,
+            'message': 'connecting',
+            'connecting': True,
+            'connected': False,
+        })
+        
         while True:
             if not self.is_connected:
-                self._connect()
-                sckt = None
-                if self.socket_type.lower() == SocketType.SERVER:
-                    sckt, _ = self.socket.accept()
-                else:
-                    sckt = self.socket
+                try:
+                    self._connect()
+                except Exception as e:
+                    logger.log('error', f"Error connecting: {e}")
+                    break
+
+            sckt = None
+            if self.socket_type.lower() == SocketType.SERVER:
+                sckt, _ = self.socket.accept()
+            else:
+                sckt = self.socket
 
             try:
                 # read a frame
@@ -62,7 +79,7 @@ class SocketLink(AbstractLink):
                     logger.info("Connection closed")
                     self._disconnect()
 
-                # Is this a new session?
+                # Is this a new session ?
                 if not self.is_open():
                     self.open()
 
@@ -77,11 +94,11 @@ class SocketLink(AbstractLink):
                     self.send_message(response)
 
             except Exception as e:
-                logger.error(f"Error reading data: {e}")
+                logger.log("error", f"Error reading data: {e}")
                 self._disconnect()
        
     def _connect(self):
-        match self.connection_type.lower():
+        match self.socket_type:
             case SocketType.CLIENT:
                 self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self.socket.connect((self.host, self.port))
@@ -93,8 +110,11 @@ class SocketLink(AbstractLink):
                 self.is_connected = True
             case _:
                 raise ValueError("Connection type must be either 'client' or 'server'")
-            
-        post_event(EventType.ACTIVITY_STREAM, {
+    
+        self.socket.setblocking(False)
+        self.socket.settimeout(5)
+
+        post_event(EventType.ACTIVITY_STREAM, **{
             'id': self.uid,
             'message': 'connected',
             'connecting': False,
@@ -103,10 +123,11 @@ class SocketLink(AbstractLink):
 
     def _disconnect(self):
         if self.is_connected:
+            # self.socket.shutdown(socket.SHUT_RDWR)
             self.socket.close()
             self.is_connected = False
 
-            post_event(EventType.ACTIVITY_STREAM, {
+            post_event(EventType.ACTIVITY_STREAM, **{
                 'id': self.uid,
                 'message': 'disconnected',
                 'connecting': False,
@@ -124,11 +145,28 @@ class SocketLink(AbstractLink):
         self._buffer = b''
         self.response = None
         self.establishment = False
+          
+        post_event(EventType.ACTIVITY_STREAM, **{
+            'id': self.uid,
+            'message': 'connected',
+            'connecting': False,
+            'connected': True,
+            'transmitting': True,
+        })
 
     def close(self):
         logger.log("info", "Closing session: neutral state")
-        self.messages = None
+        self._buffer = None
         self.establishment = False
+        self._received_messages = list()
+          
+        post_event(EventType.ACTIVITY_STREAM, **{
+            'id': self.uid,
+            'message': 'connected',
+            'connecting': False,
+            'connected': True,
+            'transmitting': False,
+        })
 
     def send_message(self, message: bytes | str | HL7Message):
         """Wraps a byte string, unicode string, or :py:class:`HL7Message`
@@ -184,16 +222,13 @@ class SocketLink(AbstractLink):
         if self.establishment:
             # Establishment phase has been initiated already and we are now in
             # Transfer phase
-            if data == SB:
-                self._buffer = b''
-                self._messages = []
-                return 
+            # if data == SB:
+            #     self._buffer = b''
+            #     return 
 
-            elif data == EB:
+            if EB in data:
                 # Received an End Of Transmission. Resume and enter to neutral
-                self.handle_eot(self._messages)
-                self._buffer = b''
-                self._messages = []
+                self.handle_eot()
                 return 
             
             # try to find a complete message(s) in the combined the buffer and data
@@ -219,14 +254,16 @@ class SocketLink(AbstractLink):
                     if self.response == NAK:
                         break
                     
-                    self._messages.append(m)
+                    self._received_messages.append(m)
 
             if self.response != NAK:
                 self.response = ACK
-            # if self._messages:
-            #     self.ack(data, 'AA')
-            # else:
-            #     self.ack(data, 'AE')
+            return
+        
+        else:
+            logger.log("info", "Establishment phase not initiated")
+        
+        self.response = NAK
 
     def handle_enq(self):
         logger.log("debug", "Initiating Establishment Phase ...")
@@ -250,11 +287,13 @@ class SocketLink(AbstractLink):
             self.establishment = True
             self.response = ACK
 
-    def handle_eot(self, messages):
+    def handle_eot(self):
         """Handles an End Of Transmission message
         """
-        logger.log("info", "Transfer phase completed")
-        super(SocketLink, self).handle_eot(messages)
+        logger.log("info", "Transfer phase completed: handle_eot")
+        message = self._buffer
+        self.show_message(message)
+        self.eot_offload(self.uid, message)
 
         # Go to neutral state
         self.response = None
