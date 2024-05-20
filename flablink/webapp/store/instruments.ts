@@ -57,7 +57,7 @@ export const useInstrumentsStore = create<InstrumentsState>((set) => ({
   },
   fetchtInstruments: async () => {
     fetch(useUrl('/instruments')).then((res) => res.json()).then((data) => {
-      set({ instruments: data });
+      set({ instruments: data.map((ins: Instrument) => ({...ins, connection: "disconnected", transmission: "ended"})) });
     }).catch((err) => { console.error(err); });
   },
   deleteInstrument: async (uid) => {

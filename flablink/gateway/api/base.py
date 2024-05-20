@@ -33,7 +33,7 @@ class BaseRouter(Generic[Service, Schema, SchemaIn]):
                 return self.Schema(**marshaller(one)) if one else None
             
         if not self.routes or "create" in self.routes:
-            @self.router.post("/", response_model=self.Schema)
+            @self.router.post("", response_model=self.Schema)
             async def create(data: self.SchemaIn, service: self.service = Depends()):
                 created = service.create(**data.dict())
                 return self.Schema(**marshaller(created))

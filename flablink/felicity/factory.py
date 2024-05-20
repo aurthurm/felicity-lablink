@@ -86,6 +86,6 @@ def create_app(config: dict):
     app = FastAPI(**config)
     register_cors(app)
     register_routes(app)
-    # register_app_events(app)
-    # register_websocket(app)
+    register_app_events(app)
+    register_websocket(app)
     return app

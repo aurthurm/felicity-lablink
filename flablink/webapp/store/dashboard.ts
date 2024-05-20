@@ -1,29 +1,29 @@
 import { useUrl } from '@/utils';
 import { create } from 'zustand';
 
-type Syncs = {
+export type Syncs = {
     synced: number;
     total: number;
 };
 
-type LastCreation = {
+export type LastCreation = {
     instrument_uid: number;
     minutes_ago: number;
 };
 
-type HourlyData = {
+export type HourlyData = {
     week: string;
     instrument_uid: number;
     count: number;
 };
 
-type DailyData = {
+export type DailyData = {
     date: string;
     instrument_uid: number;
     count: number;
 };
 
-type WeeklyData = {
+export type WeeklyData = {
     week: string;
     instrument_uid: number;
     count: number;
@@ -55,11 +55,9 @@ export const useDashBoardStore = create<DashBoardState>((set) => ({
     synced_weekly: [],
     fetchStatictics: async () => {
         fetch(useUrl("/orders/stats")).then((res) => res.json()).then((data) => {
-            console.log(data);
+        set((state) => ({...state, ...data}));
         }).catch((err) => { console.error(err); });
     }
 }));
-
-
 
 // ask assistent to generate data for sync and creation heat maps: time of day vs day of week by instrument

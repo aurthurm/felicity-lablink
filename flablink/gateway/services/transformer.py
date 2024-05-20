@@ -66,7 +66,7 @@ class Transformer: # previously OrderService
         return {
             "order_id": id,
             "test_id": id,
-            "keywork": message.get("keyword"),
+            "keyword": message.get("keyword"),
             "result": message.get("result"),
             "result_date": message.get("capture_date"),
             "raw_message": message.get("raw_message"),

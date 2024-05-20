@@ -29,7 +29,7 @@ async def all_orders(filter: str = None, service: OrderService = Depends()):
             filters={
                 or_: {
                     "test_id__like": filter,
-                    "keywork__like": filter,
+                    "keyword__like": filter,
                     "instrument__like": filter,
                     "result__like": filter,
                     "result_date__like": filter,

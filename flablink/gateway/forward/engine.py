@@ -414,14 +414,14 @@ class ResultInterface(FowardOrderHandler, SenaiteHandler):
                             order.uid,
                             order.order_id,
                             result,
-                            order.keywork
+                            order.keyword
                         )
                 else:
                     senaite_updated = self.do_work_for_order(
                         order.uid,
                         order.order_id,
                         result,
-                        order.keywork
+                        order.keyword
                     )
             #
             if senaite_updated:
