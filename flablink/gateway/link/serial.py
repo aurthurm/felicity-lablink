@@ -291,9 +291,8 @@ class SerialLink(AbstractLink):
 
         post_event(EventType.ACTIVITY_STREAM, **{
             'id': self.uid,
-            'message': 'connecting',
-            'connecting': True,
-            'connected': False,
+            'connection': "connecting",
+            'trasmission': "",
         })
 
         try:
@@ -301,9 +300,8 @@ class SerialLink(AbstractLink):
                 print("Listening on path {}.".format(self.path))        
                 post_event(EventType.ACTIVITY_STREAM, **{
                     'id': self.uid,
-                    'message': 'connected',
-                    'connecting': False,
-                    'connected': True,
+                    'connection': "connected",
+                    'trasmission': "",
                 })
                 while True:
                     # read until a new line is found
@@ -333,9 +331,8 @@ class SerialLink(AbstractLink):
         finally:     
             post_event(EventType.ACTIVITY_STREAM, **{
                 'id': self.uid,
-                'message': 'disconnected',
-                'connecting': False,
-                'connected': False,
+                'connection': "disconnected",
+                'trasmission': "",
             })
             if self.auto_reconnect and trials <= 5:
                 logger.log("info", f"Reconnecting ... trial: {trials}")
@@ -361,10 +358,8 @@ class SerialLink(AbstractLink):
           
         post_event(EventType.ACTIVITY_STREAM, **{
             'id': self.uid,
-            'message': 'connected',
-            'connecting': False,
-            'connected': True,
-            'transmitting': True,
+            'connection': "connected",
+            'trasmission': "started",
         })
 
     def close(self):
@@ -375,10 +370,8 @@ class SerialLink(AbstractLink):
           
         post_event(EventType.ACTIVITY_STREAM, **{
             'id': self.uid,
-            'message': 'connected',
-            'connecting': False,
-            'connected': True,
-            'transmitting': False,
+            'connection': "connected",
+            'trasmission': "ended",
         })
 
     def to_str(self, command):

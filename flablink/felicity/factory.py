@@ -1,8 +1,7 @@
 from contextlib import asynccontextmanager
-from apscheduler.schedulers.background import BackgroundScheduler
+from typing import AsyncGenerator
 
-from datetime import datetime
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -12,12 +11,12 @@ from flablink.config import STATIC_DIR
 from flablink.gateway.seeder import seed_all
 from flablink.gateway.extensions.event.register import observe_events
 from flablink.gateway.api import api
-
 from flablink.gateway.logger import Logger
 from flablink.gateway.tasks import start_scheduler, shutdown_scheduler
+from flablink.gateway.extensions.channel.channel import broadcast
+from flablink.gateway.extensions.channel.base import Channels
 
 logger = Logger(__name__, __file__)
-
 
 # @asynccontextmanager
 # async def lifespan(app: FastAPI):
@@ -39,6 +38,7 @@ def register_app_events(app: FastAPI):
     def shutdown_event():
         logger.log("info", "Server shutting down............................................")
         shutdown_scheduler()
+
 
 
 def register_cors(app: FastAPI):
@@ -69,10 +69,23 @@ def register_routes(app: FastAPI):
         return Jinja2Templates(directory=STATIC_DIR).TemplateResponse("index.html", {"request": request})
 
 
+def register_websocket(app: FastAPI):
+    @app.websocket("/ws/{client_id}")
+    async def websocket_endpoint(websocket: WebSocket, client_id):
+        await websocket.accept()
+        async with broadcast.subscribe(channel=Channels.ACTIVITIES) as subscriber:
+            while True:  # Continuously listen for broadcast messages
+                event = await subscriber.get()
+                try:
+                    await websocket.send_json(event.message)
+                except Exception as e:
+                    ...
+
 def create_app(config: dict):
     # config["lifespan"] = lifespan
     app = FastAPI(**config)
     register_cors(app)
     register_routes(app)
-    register_app_events(app)
+    # register_app_events(app)
+    # register_websocket(app)
     return app

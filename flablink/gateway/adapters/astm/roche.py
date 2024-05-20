@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from flablink.gateway.adapters.astm.generic import ASTMBaseAdapter
+from flablink.gateway.adapters.astm.base import ASTMBaseAdapter
 
 
 class RocheASTMPlusAdapter(ASTMBaseAdapter):

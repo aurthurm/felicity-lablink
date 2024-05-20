@@ -1,111 +1,162 @@
 # -*- coding: utf-8 -*-
 
+from flablink.gateway.adapters.hl7.base import  HL7BaseAdapter
 
-class HL7BaseAdapter:
 
-    _raw_records = None
-    _field_delimiter = None
-    _repeat_delimiter = None
-    _component_delimiter = None
-    _sub_component_delimiter = None
-    _escape_delimiter = None
+class GenericHl7Adapter(HL7BaseAdapter):
+    """Adapter HL7 messages"""
 
     def __init__(self, message):
-        self.message = message
+        super(GenericHl7Adapter, self).__init__(message)
 
     @property
-    def raw_records(self):
+    def header_record(self):
         """
-        :return: List<str>
+        Returns a dict that represents the header of the message
         """
-        if self._raw_records is None:
-            self._raw_records = list(map(lambda r: r.strip(),
-                                         self.message.splitlines()))
-        return self._raw_records or []
+        # MSH|^~\&|COBAS6800/8800||LIS||20230123104355||OUL^R22|13968052-baa9-474c-91bb-f7cf19d988fe|P|2.5||||||ASCII
+        message_type = self.get_field(self.raw_header_record, 8)
+        return {
+            "RecordTypeId": self.get_field(self.raw_header_record, 0),
+            "FieldDelimiter": self.field_delimiter,
+            "RepeatDelimiter": self.repeat_delimiter,
+            "ComponentDelimiter": self.component_delimiter,
+            "SubComponentDelimiter": self.sub_component_delimiter,
+            "EscapeDelimiter": self.escape_delimiter,
+            "SendingApplication": self.get_field(self.raw_header_record, 2),
+            "ReceivingApplication": self.get_field(self.raw_header_record, 4),
+            "DateTimeOfMessage": self.get_field(self.raw_header_record, 6),
+            "MesageCode": self.get_component(message_type, 0),
+            "TriggerEvent": self.get_component(message_type, 1),
+            "MessageControlId": self.get_field(self.raw_header_record, 9),
+            "ProcessingId": self.get_field(self.raw_header_record, 10),
+            "VersionId": self.get_field(self.raw_header_record, 11),
+            "CharacterSet": self.get_field(self.raw_header_record, 17),
+        }
 
     @property
-    def raw_observation_record(self):
-        records = self.search_raw_records("OBX{}".format(self.field_delimiter))
-        return records
+    def patient_record(self):
+        return {}
 
     @property
-    def raw_specimen_record(self):
-        record = self.search_raw_records("SPM{}".format(self.field_delimiter))
-        return record and record[0] or None
+    def specimen_record(self):
+        # SPM||BP23-04444||PLAS^plasma^HL70487|||||||P||||||||||||||||
+        specimen_type = self.get_field(self.raw_specimen_record, 4)
+        return {
+            "RecordTypeId": self.get_field(self.raw_specimen_record, 0),
+            "SpecimenId": self.get_field(self.raw_specimen_record, 2),
+            "SpecimenTypeIdentifier": self.get_component(specimen_type, 0),
+            "SpecimenTypeText": self.get_component(specimen_type, 1),
+            "SpecimenTypeCoding": self.get_component(specimen_type, 2),
+            "SpecimenRole": self.get_field(self.raw_specimen_record, 11),
+        }
+    
+    @property
+    def specimen_container_record(self):
+        # SAC|||BP24-33200|||||||A097802|12||||12^Position^99ABT
+        return {
+            "ContainerIdentifier": self.get_field(self.raw_specimen_container_record, 3),
+        }
 
     @property
-    def raw_test_code_record(self):
-        record = self.search_raw_records("TCD{}".format(self.field_delimiter))
-        return record and record[0] or None
+    def observation_request_record(self):
+        # OBR|1|||70241-5^HIV^LN|||||||A
+        universal_service = self.get_field(
+            self.raw_observation_request_record, 4)
+        return {
+            "RecordTypeId": self.get_field(self.raw_observation_request_record, 0),
+            "UniversalServiceIdentifier": self.get_component(universal_service, 0),
+            "UniversalServiceText": self.get_component(universal_service, 1),
+            "UniversalServiceCoding": self.get_component(universal_service, 2),
+            "SpecimenActionCode": self.get_field(self.raw_observation_request_record, 11),
+        }
 
     @property
-    def raw_observation_request_record(self):
-        record = self.search_raw_records("OBR{}".format(self.field_delimiter))
-        return record and record[0] or None
+    def test_code_record(self):
+        # TCD|70241-5^HIV^LN|^1^:^0
+        universal_service = self.get_field(
+            self.raw_test_code_record, 1)
+        return {
+            "RecordTypeId": self.get_field(self.raw_test_code_record, 0),
+            "UniversalServiceIdentifier": self.get_component(universal_service, 0),
+            "UniversalServiceText": self.get_component(universal_service, 1),
+            "UniversalServiceCoding": self.get_component(universal_service, 2),
+            "AutoDilutionFactor": self.get_field(self.raw_test_code_record, 2),
+        }
 
-    @property
-    def field_delimiter(self):
-        return self.get_delimiter(self._field_delimiter, 3)
+    def get_result_metadata(self, record):
+        # OBX|1|ST|HIV^HIV^99ROC||ValueNotSet|||BT|||F|||||Lyna||C6800/8800^Roche^^~Unknown^Roche^^~ID_000000000012076380^IM300-002765^^|20230120144614|||||||||386_neg^^99ROC~385_pos^^99ROC
+        # OBX|2|NA|HIV^HIV^99ROC^S_OTHER^Other Supplemental^IHELAW||41.47^^37.53||||||F|||||Lyna||C6800/8800^Roche^^~Unknown^Roche^^~ID_000000000012076380^IM300-002765^^|20230120144614|||||||||386_neg^^99ROC~385_pos^^99ROC
+        # OBX|3|ST|70241-5^HIV^LN|1/1|ValueNotSet|||RR|||F|||||Lyna||C6800/8800^Roche^^~Unknown^Roche^^~ID_000000000012076380^IM300-002765^^|20230120144614|||||||||386_neg^^99ROC~385_pos^^99ROC
+        # OBX|4|ST|70241-5^HIV^LN|1/2|< Titer min|||""|||F|||||Lyna||C6800/8800^Roche^^~Unknown^Roche^^~ID_000000000012076380^IM300-002765^^|20230120144614|||||||||386_neg^^99ROC~385_pos^^99ROC
+        # OBX|1|ST|1006^HIV-1^99ABT||Not Detected|||""|||F|||||Funkydee~Admin||Alinity m^Abbott~M01143^Abbott~1^Abbott~10^Abbott|20240517174741||||||||||RSLT
 
-    @property
-    def repeat_delimiter(self):
-        return self.get_delimiter(self._repeat_delimiter, 5)
+        manufacturer = self.get_record_component(record, 18, 1)
+        model = self.get_record_component(record, 18, 0)
+        return {
+            "RecordTypeId": self.get_field(record, 0),
+            "ValueType": self.get_field(record, 2),
+            "ObservationSubID": self.get_field(record, 4),
+            "ObservationValue": self.get_field(record, 5),
+            "Units": self.get_field(record, 6),
+            "ReferenceRange": self.get_field(record, 7),
+            "AbnormalFlags": self.get_field(record, 8),
+            "ObservationResultStatus": self.get_field(record, 11),
+            "ResponsibleObserver": self.get_field(record, 16),
+            "DateTimeofAnalysis": self.get_field(record, 19),
+            "EquipmentInstanceIdentifier": f"{model}:{manufacturer}"
+        }
 
-    @property
-    def component_delimiter(self):
-        return self.get_delimiter(self._component_delimiter, 4)
+    def resolve_final_result_record(self, records):
+        """Returns the result record (raw) to be considered as the final result
+        """
+        if isinstance(records, dict):
+            return records
 
-    @property
-    def escape_delimiter(self):
-        return self.get_delimiter(self._escape_delimiter, 6)
+        if len(records) == 1:
+            return self.get_result_metadata(records[0])
 
-    @property
-    def sub_component_delimiter(self):
-        return self.get_delimiter(self._escape_delimiter, 7)
+        for record in records:
+            meta = self.get_result_metadata(record)
+            if self.is_final_result(meta):
+                if meta["ObservationValue"] == "Titer":
+                    return self.get_result_metadata(records[0])
+                return meta
 
-    @property
-    def raw_header_record(self):
-        record = self.search_raw_records("MSH")
-        return record and record[0] or None
+        return self.get_result_metadata(records[0])
 
-    def search_raw_records(self, prefix):
-        return list(filter(lambda rec: rec.startswith(prefix), self.raw_records))
-
-    def get_delimiter(self, delimiter_var, index):
-        if delimiter_var is None:
-            return self.raw_header_record[index]
-        return delimiter_var
-
-    def get_fields(self, record):
-        return record and record.split(self.field_delimiter) or []
-
-    def get_field(self, record, index, default=None):
-        fields = self.get_fields(record)
-        if index >= len(fields):
-            return default
-        return fields[index]
-
-    def get_repeats(self, field):
-        return field and field.split(self.repeat_delimiter) or []
-
-    def get_components(self, field):
-        return field and field.split(self.component_delimiter) or []
-
-    def get_component(self, field, index, default=None):
-        comp = self.get_components(field)
-        if index >= len(comp):
-            return default
-        return comp[index]
-
-    def get_record_component(self, record, field_index, component_index,
-                             default=None):
-        field = self.get_field(record, field_index)
-        return self.get_component(field, component_index, default=default)
-
-    def has_header(self):
-        if self.raw_header_record:
+    def is_final_result(self, meta_result):
+        """Returns whether a (R)sult record must be considered as the final result or not
+        """
+        if meta_result["ObservationSubID"] == "1/2":
             return True
         return False
 
-    def resolve_final_result_record(self, records):
-        return records[0]
+    @property
+    def observation_record(self):
+        return self.resolve_final_result_record(self.raw_observation_record)
+
+    def is_supported(self):
+        """Returns whether the current adapter supports the given message
+        """
+        return True
+
+    def read(self):
+        """Returns a list of ASTMDataResult objects
+        """
+        id = self.specimen_record["SpecimenId"]
+        if not id:
+            id = self.specimen_container_record["ContainerIdentifier"]
+        
+        keyword = self.test_code_record["UniversalServiceText"]
+        if not keyword:
+            keyword = self.observation_request_record["UniversalServiceText"]
+
+        data = {}
+        data["id"] = id
+        data["keyword"] = keyword
+        data["result"] = self.observation_record["ObservationValue"]
+        data["instrument"] = self.observation_record["EquipmentInstanceIdentifier"]
+        data["capture_date"] = self.observation_record["DateTimeofAnalysis"]
+        data["raw_message"] = self.message
+        return [data]

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, SmallInteger, String, Boolean, UniqueConstraint
+from sqlalchemy import Column, ForeignKey, Integer, SmallInteger, String, Boolean, UniqueConstraint, DateTime
 from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.orm import relationship
 
@@ -11,7 +11,7 @@ class Order(DBModel):
 
     order_id = Column(String(50), nullable=False)
     test_id = Column(String(50), nullable=True)
-    keywork = Column(String(50), nullable=False)
+    keyword = Column(String(50), nullable=False)
     instrument = Column(String(50), nullable=True)
     result = Column(String(255), nullable=False)
     result_date = Column(String(25), nullable=False)
@@ -19,7 +19,7 @@ class Order(DBModel):
     comment = Column(String(255), nullable=True)
     is_sync_allowed = Column(Boolean, nullable=False, default=True)
     synced = Column(SmallInteger, nullable=False, default=False)
-    sync_date = Column(String(25), nullable=True)
+    sync_date = Column(DateTime, nullable=True)
     sync_comment = Column(String(255), nullable=True)
     raw_message = Column(LONGTEXT, nullable=True)
     raw_data_uid = Column(
@@ -32,7 +32,6 @@ class Order(DBModel):
         ForeignKey("instruments.uid", ondelete="CASCADE"),
         nullable=True
     )
-
 
 
 class ResultExclusions(DBModel):

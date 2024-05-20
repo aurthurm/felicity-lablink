@@ -14,6 +14,8 @@ export type Instrument = {
   connection_type?: string | null;
   protocol_type?: string | null;
   socket_type?: string | null;
+  connection?: "connecting" | "connected" | "disconnected";
+  transmission?: "started" | "ended";
 };
 
 type InstrumentsState = {
@@ -22,6 +24,7 @@ type InstrumentsState = {
   updateInstrument: (uid: number, instrument: Partial<Instrument>) => Promise<void>;
   fetchtInstruments: () => Promise<void>;
   deleteInstrument: (uid: number) => Promise<void>;
+  updateActivity: (payload: any) => void;
 };
 
 export const useInstrumentsStore = create<InstrumentsState>((set) => ({
@@ -66,4 +69,16 @@ export const useInstrumentsStore = create<InstrumentsState>((set) => ({
       }));
     }).catch((err) => { console.error(err); });
   },
+  updateActivity: (payload: any) => {
+    payload = JSON.parse(payload);
+    console.log(payload, payload.id, payload['id']);
+    set((state) => ({
+      instruments: state.instruments.map((i) => {
+        if (i.uid === payload?.id) {
+          return { ...i,  ...payload};
+        }
+        return i;
+      }),
+    }));
+  }
 }));

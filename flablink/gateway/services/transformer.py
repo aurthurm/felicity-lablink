@@ -69,7 +69,8 @@ class Transformer: # previously OrderService
             "keywork": message.get("keyword"),
             "result": message.get("result"),
             "result_date": message.get("capture_date"),
-            "raw_message": message.get("raw_message")
+            "raw_message": message.get("raw_message"),
+            "instrument": message.get("instrument", "")
         }
 
     @property

@@ -5,12 +5,13 @@ from datetime import datetime
 
 from flablink.gateway.services.connection import ConnectionService
 
-
+global scheduler
 scheduler = BackgroundScheduler()
 # scheduler.add_jobstore(job_store, 'sqlalchemy')
 
 
 def job_listener(event):
+    global scheduler
     if event.exception:
         print(f'Job {event.job_id} failed')
     else:
@@ -22,6 +23,7 @@ def job_listener(event):
 
 
 def start_scheduler():
+    global scheduler
     links = ConnectionService().get_links()
     for link in links:
         print(link.__dict__)
@@ -31,4 +33,5 @@ def start_scheduler():
     scheduler.start()
 
 def shutdown_scheduler():
-    scheduler.shutdown()
+    global scheduler
+    scheduler.shutdown(wait=False)

@@ -8,8 +8,8 @@ class BaseService(Generic[M]):
     def __init__(self, model: M):
         self.model = model
 
-    def find_all(self) -> list[M]:
-        return self.model.all()
+    def find_all(self, filters=None, limit=100) -> list[M]:
+        return self.model.find_all(filters, limit)
 
     def find_one(self, uid: int) -> M | None:
         return self.model.find(uid)

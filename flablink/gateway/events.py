@@ -3,15 +3,17 @@ from datetime import datetime
 
 from flablink.gateway.extensions.event.event import subscribe
 from flablink.gateway.extensions.event.base import EventType
+from flablink.gateway.extensions.channel.channel import broadcast
+from flablink.gateway.extensions.channel.base import Channels
 
   
-def log_activity(source: str, message: str, **kwargs) -> NoReturn:
+def log_activity(**kwargs) -> NoReturn:
     now = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
 
 
 def stream_activity(**kwargs) -> NoReturn:
-    now = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-    print(now, kwargs)
+    print(kwargs)
+    broadcast.publish(Channels.ACTIVITIES, kwargs)
 
 
 def subscribe_felsocket_events():

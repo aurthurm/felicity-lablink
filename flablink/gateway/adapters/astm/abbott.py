@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from flablink.gateway.adapters.astm.generic import ASTMBaseAdapter
+from flablink.gateway.adapters.astm.base import ASTMBaseAdapter
 
 # Mappings between the value of the sub-field TestID/AssayName from the
 # "Universal Test ID" field from (R)esult record and the Result type sub-field

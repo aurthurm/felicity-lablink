@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from flablink.gateway.adapters.hl7.generic import  HL7BaseAdapter
+from flablink.gateway.adapters.hl7.base import  HL7BaseAdapter
 
 
 class RocheCOBAS68008800Hl7Adapter(HL7BaseAdapter):
@@ -83,6 +83,8 @@ class RocheCOBAS68008800Hl7Adapter(HL7BaseAdapter):
         # OBX|2|NA|HIV^HIV^99ROC^S_OTHER^Other Supplemental^IHELAW||41.47^^37.53||||||F|||||Lyna||C6800/8800^Roche^^~Unknown^Roche^^~ID_000000000012076380^IM300-002765^^|20230120144614|||||||||386_neg^^99ROC~385_pos^^99ROC
         # OBX|3|ST|70241-5^HIV^LN|1/1|ValueNotSet|||RR|||F|||||Lyna||C6800/8800^Roche^^~Unknown^Roche^^~ID_000000000012076380^IM300-002765^^|20230120144614|||||||||386_neg^^99ROC~385_pos^^99ROC
         # OBX|4|ST|70241-5^HIV^LN|1/2|< Titer min|||""|||F|||||Lyna||C6800/8800^Roche^^~Unknown^Roche^^~ID_000000000012076380^IM300-002765^^|20230120144614|||||||||386_neg^^99ROC~385_pos^^99ROC
+        manufacturer = self.get_record_component(record, 18, 1)
+        model = self.get_record_component(record, 18, 0)
         return {
             "RecordTypeId": self.get_field(record, 0),
             "ValueType": self.get_field(record, 2),
@@ -94,6 +96,7 @@ class RocheCOBAS68008800Hl7Adapter(HL7BaseAdapter):
             "ObservationResultStatus": self.get_field(record, 11),
             "ResponsibleObserver": self.get_field(record, 16),
             "DateTimeofAnalysis": self.get_field(record, 19),
+            "EquipmentInstanceIdentifier": f"{model}:{manufacturer}"
         }
 
     def resolve_final_result_record(self, records):

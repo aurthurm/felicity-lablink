@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
-from fastapi import Depends
-
+from sqlalchemy import select, func, text
+from sqlalchemy.orm import Session
 from flablink.gateway.models import (
     Order,
     ResultExclusions,
@@ -13,6 +13,7 @@ from flablink.gateway.helpers import has_special_char
 from flablink.config import DB_CLEAR_DATA_OVER_DAYS
 from flablink.gateway.services.base import BaseService
 from flablink.gateway.services.raw_data import RawDataService
+from flablink.gateway.db.session import engine
 
 
 logger = Logger(__name__, __file__)
@@ -89,6 +90,134 @@ class OrderService(BaseService[Order]):
             "synced": 2 if hspc else 0,
             "sync_comment": "Incorrect Sample Id" if hspc else None
         })
+
+    def statistics(self):
+        stats = {}
+        with Session(engine) as session:
+            results = session.execute(
+                select(
+                    self.model.synced, 
+                    func.count().label('total')
+                ).group_by(self.model.synced)
+            )
+            stats["sync"] = results.all()
+            results = session.execute(
+                select(
+                    self.model.instrument_uid,
+                    func.timestampdiff(text('MINUTE'), func.max(self.model.created_at), func.current_timestamp()).label('minutes_ago')
+                ).group_by(
+                    self.model.instrument_uid
+                )
+            )
+            stats["last_creation"] = results.all()
+            results = session.execute(
+                select(func.max(self.model.sync_date)).filter(self.model.sync_date != None)
+            )
+            stats["last_sync"] = results.scalar()
+        
+
+        created_hourly = session.query(
+            func.date_format(self.model.created_at, '%Y-%m-%d %H').label('hour'),
+            self.model.instrument_uid,
+            func.count().label('count')
+        ).filter(
+            self.model.created_at >= func.now() - text('interval 24 hour')
+        ).group_by(
+            func.date_format(self.model.created_at, '%Y-%m-%d %H'),
+            self.model.instrument_uid,
+        ).order_by(
+            func.date_format(self.model.created_at, '%Y-%m-%d %H'),
+            self.model.instrument_uid,
+        )
+
+        created_daily = session.query(
+            func.date_format(self.model.created_at, '%Y-%m-%d').label('date'),
+            self.model.instrument_uid,
+            func.count().label('count')
+        ).filter(
+            self.model.created_at >= func.now() - text('interval 7 day')
+        ).group_by(
+            func.date_format(self.model.created_at, '%Y-%m-%d'),
+            self.model.instrument_uid,
+        ).order_by(
+            func.date_format(self.model.created_at, '%Y-%m-%d'),
+            self.model.instrument_uid,
+        )
+
+        created_weekly = session.query(
+            func.date_format(self.model.created_at, '%Y-%m-%W').label('week'),
+            self.model.instrument_uid,
+            func.count().label('count')
+        ).filter(
+            self.model.created_at >= func.now() - text('interval 30 day')
+        ).group_by(
+            func.date_format(self.model.created_at, '%Y-%m-%W'),
+            self.model.instrument_uid,
+        ).order_by(
+            func.date_format(self.model.created_at, '%Y-%m-%W'),
+            self.model.instrument_uid,
+        )
+
+        with Session(engine) as session:
+            results = session.execute(created_hourly)
+            stats["created_hourly"] = results.all()
+            results = session.execute(created_daily)
+            stats["created_daily"] = results.all()
+            results = session.execute(created_weekly)
+            stats["created_weekly"] = results.all()
+
+        synced_hourly = session.query(
+            func.date_format(self.model.sync_date, '%Y-%m-%d %H').label('hour'),
+            self.model.instrument_uid,
+            func.count().label('count')
+        ).filter(
+            self.model.sync_date >= func.now() - text('interval 24 hour'),
+            self.model.synced > 0
+        ).group_by(
+            func.date_format(self.model.sync_date, '%Y-%m-%d %H'),
+            self.model.instrument_uid,
+        ).order_by(
+            func.date_format(self.model.sync_date, '%Y-%m-%d %H'),
+            self.model.instrument_uid,
+        )
+        synced_daily = session.query(
+            func.date_format(self.model.sync_date, '%Y-%m-%d').label('date'),
+            self.model.instrument_uid,
+            func.count().label('count')
+        ).filter(
+            self.model.sync_date >= func.now() - text('interval 7 day'),
+            self.model.synced > 0
+        ).group_by(
+            func.date_format(self.model.sync_date, '%Y-%m-%d'),
+            self.model.instrument_uid,
+        ).order_by(
+            func.date_format(self.model.sync_date, '%Y-%m-%d'),
+            self.model.instrument_uid,
+        )
+
+        synced_weekly = session.query(
+            func.date_format(self.model.sync_date, '%Y-%m-%W').label('week'),
+            self.model.instrument_uid,
+            func.count().label('count')
+        ).filter(
+            self.model.sync_date >= func.now() - text('interval 30 day'),
+            self.model.synced > 0
+        ).group_by(
+            func.date_format(self.model.sync_date, '%Y-%m-%W'),
+            self.model.instrument_uid,
+        ).order_by(
+            func.date_format(self.model.sync_date, '%Y-%m-%W'),
+            self.model.instrument_uid,
+        )
+
+        with Session(engine) as session:
+            results = session.execute(synced_hourly)
+            stats["synced_hourly"] = results.all()
+            results = session.execute(synced_daily)
+            stats["synced_daily"] = results.all()
+            results = session.execute(synced_weekly)
+            stats["synced_weekly"] = results.all()
+        return stats
 
 
 class ResultExclusionsService(BaseService[ResultExclusions]):

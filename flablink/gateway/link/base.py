@@ -62,11 +62,8 @@ class AbstractLink(ABC):
         if not message:
             return
 
-        # print("-" * 80)
         logger.log("info", "-" * 80)
-        # print(message)
         logger.log("info", f"{message}")
-        # print("-" * 80)
         logger.log("info", "-" * 80)
 
         post_event(EventType.ACTIVITY_LOG, **{

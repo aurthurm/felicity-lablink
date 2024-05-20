@@ -24,28 +24,6 @@ class DBModel(AllFeaturesMixin, TimestampsMixin):
     @classproperty
     def settable_attributes(cls):
         return cls.columns + cls.hybrid_properties + cls.settable_relations
-    
-    def marshall(self, obj: Any = None, depth: int = 3) -> Mapping[str, Any] | List[Mapping[str, Any]]:
-        if depth <= 0:
-            return obj
-
-        if obj is None:
-            obj = self
-
-        if isinstance(obj, dict):
-            return {k: self.marshall(obj=v, depth=depth - 1) for k, v in obj.items()}
-        elif hasattr(obj, "_ast"):
-            return self.marshall(obj=obj._ast(), depth=depth - 1)
-        elif not isinstance(obj, str) and hasattr(obj, "__iter__"):
-            return [self.marshall(obj=v, depth=depth - 1) for v in obj]
-        elif hasattr(obj, "__dict__"):
-            return {
-                k: self.marshall(obj=v, depth=depth - 1)
-                for k, v in obj.__dict__.items()
-                if not callable(v) and not k.startswith("_")
-            }
-        else:
-            return obj
 
     def fill(self, **kwargs) -> Self:
         for name in kwargs.keys():
@@ -100,6 +78,16 @@ class DBModel(AllFeaturesMixin, TimestampsMixin):
         return _all
 
     @classmethod
+    def find_all(cls, filters, limit=None) -> list[Self]:
+        stmt = cls.smart_query(filters, sort_attrs=["-uid"])
+        if limit:
+            stmt = stmt.limit(limit)
+        with Session(engine) as session:
+            results = session.execute(stmt)
+            _all = results.scalars().all()
+        return _all
+
+    @classmethod
     def first(cls) -> Self | None:
         with Session(engine) as session:
             result = session.execute(select(cls))
@@ -115,29 +103,9 @@ class DBModel(AllFeaturesMixin, TimestampsMixin):
         return found_or
 
     @classmethod
-    def find_all(cls, filters, limit=None) -> list[Self]:
-        stmt = cls.smart_query(filters)
-        if limit:
-            stmt = stmt.limit(limit)
-        with Session(engine) as session:
-            results = session.execute(stmt)
-            _all = results.scalars().all()
-        return _all
-
-    @classmethod
     def get(cls, **kwargs) -> Self:
         stmt = cls.where(**kwargs)
         with Session(engine) as session:
             results = session.execute(stmt)
             found = results.scalars().first()
         return found
-    
-    @classmethod
-    def get_all(cls, limit, **kwargs) -> list[Self]:
-        stmt = cls.where(**kwargs)
-        if limit:
-            stmt = stmt.limit(limit)
-        with Session(engine) as session:
-            results = session.execute(stmt)
-            _all = results.scalars().all()
-        return _all

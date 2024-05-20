@@ -1,8 +1,7 @@
-// src/store/ordersStore.ts
+import { useUrl } from '@/utils';
 import { create } from 'zustand';
-import axios from 'axios'; // Ensure axios is installed via npm/yarn
 
-type Order = {
+export type Order = {
   order_id: string;
   test_id?: string;
   keyword: string;
@@ -23,27 +22,20 @@ type Order = {
 type OrdersState = {
   orders: Order[];
   filterOrders: (keyword: string) => Promise<void>;
-  listOrders: () => Promise<void>;
+  fetchOrders: () => Promise<void>;
 };
 
 export const useOrdersStore = create<OrdersState>((set) => ({
   orders: [],
   filterOrders: async (keyword) => {
-    try {
-      const response = await axios.get('/api/orders/filter', { params: { keyword } }); // Adjust the URL to your API endpoint
-      console.log(response.data); // Handle success response
-      set(() => ({ orders: response.data }));
-    } catch (error) {
-      console.error(error); // Handle error
-    }
+    fetch(useUrl(`/orders?keyword=${keyword}`)).then((res) => res.json()).then((data) => {
+      set({ orders: data });
+      return data;
+    }).catch((err) => { console.error(err); });
   },
-  listOrders: async () => {
-    try {
-      const response = await axios.get('/api/orders/list'); // Adjust the URL to your API endpoint
-      console.log(response.data); // Handle success response
-      set(() => ({ orders: response.data }));
-    } catch (error) {
-      console.error(error); // Handle error
-    }
+  fetchOrders: async () => {
+      fetch(useUrl('/orders')).then((res) => res.json()).then((data) => {
+        set({ orders: data });
+      }).catch((err) => { console.error(err); });
   },
 }));

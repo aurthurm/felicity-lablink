@@ -1,5 +1,12 @@
 import { Button } from "@/components/ui/button"
 import {
+  Zap,
+  ZapOff,
+  RefreshCcw,
+  Satellite
+} from "lucide-react"
+
+import {
   Card,
   CardDescription,
   CardFooter,
@@ -37,6 +44,10 @@ export default function InstrumentCard({ instrument }: any) {
       <CardHeader className="mb-0 pb-2">
         <CardTitle>{ instrument?.name }</CardTitle>
         <CardDescription>last transmitted 2 minutes ago</CardDescription>
+        {(instrument?.connection === "connecting") && <RefreshCcw size={24} />}
+        {(instrument?.connection === "connected") && <Zap size={24} /> }
+        {(instrument?.connection === "disconnected") && <ZapOff size={24} />}
+        {(instrument?.trasmission === "started") && <Satellite size={24} />}
       </CardHeader>
       <CardFooter className="mt-0 pt-0 flex justify-between">
         <Button variant="outline" className="pointer-events-none">Disconnected</Button>

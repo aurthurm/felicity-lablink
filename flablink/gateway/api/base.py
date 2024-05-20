@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from fastapi import APIRouter, Depends
 
 from flablink.gateway.services.base import BaseService
+from flablink.gateway.utils import marshaller
 
 Service = TypeVar("Service", bound=BaseService)
 Schema = TypeVar("Schema", bound=BaseModel)
@@ -19,28 +20,29 @@ class BaseRouter(Generic[Service, Schema, SchemaIn]):
         self.routes = routes
 
         if not self.routes or "all" in self.routes:
-            @self.router.get("/", response_model=List[self.Schema])
-            async def get_all(service: self.service = Depends()):
+            @self.router.get("", response_model=List[self.Schema])
+            async def get_all(filter: str = None, service: self.service = Depends()):
+                print(f"filter -> {filter}")
                 all = service.find_all()
-                return [self.Schema(**inst.marshall()) for inst in all]
+                return [self.Schema(**marshaller(inst)) for inst in all]
 
         if not self.routes or "one" in self.routes:
             @self.router.get("/{uid}", response_model=self.Schema)
             async def get_one(uid: str, service: self.service = Depends()):
                 one = service.find_one(uid)
-                return self.Schema(**one.marshall()) if one else None
+                return self.Schema(**marshaller(one)) if one else None
             
         if not self.routes or "create" in self.routes:
             @self.router.post("/", response_model=self.Schema)
             async def create(data: self.SchemaIn, service: self.service = Depends()):
                 created = service.create(**data.dict())
-                return self.Schema(**created.marshall())
+                return self.Schema(**marshaller(created))
             
         if not self.routes or "update" in self.routes:
             @self.router.put("/{uid}", response_model=self.Schema)
             async def update(uid: str, data: self.SchemaIn, service: self.service = Depends()):
                 updated = service.update(uid, **data.dict())
-                return self.Schema(**updated.marshall())
+                return self.Schema(**marshaller(updated))
             
         if not self.routes or "delete" in self.routes:
             @self.router.delete("/{uid}", response_model=str)

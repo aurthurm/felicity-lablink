@@ -1,7 +1,7 @@
 from asyncio import Queue
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from typing import Any, AsyncIterator, Dict, Set
+from typing import Any, AsyncIterator, Set
 
 
 @dataclass
@@ -46,40 +46,14 @@ class Broadcast:
         if not self.subscribers[channel]:
             del self.subscribers[channel]
 
-    async def publish(self, channel: str, message: Any):
+    async def apublish(self, channel: str, message: Any):
         event = BroadcastEvent(channel=channel, message=message)
         for subscriber_queue in self.subscribers.get(channel, set()):
             await subscriber_queue.put(event)
 
+    def publish(self, channel: str, message: Any):
+        event = BroadcastEvent(channel=channel, message=message)
+        for subscriber_queue in self.subscribers.get(channel, set()):
+            subscriber_queue.put_nowait(event)
 
 broadcast = Broadcast()
-
-
-
-
-
-# usage example
-
-
-
-from flablink.core.channel.channel import broadcast
-from flablink.core.channel.base import Channels
-
-
-await broadcast.publish(Channels.ACTIVITIES, "data or object here")
-
-
-from typing import AsyncGenerator
-
-
-async def latest_activity(self) -> AsyncGenerator[ActivityStreamType, None]:  # noqa
-    subscriber: Subscriber
-    async with broadcast.subscribe(channel=Channels.ACTIVITIES) as subscriber:
-        logger.info("Subscribed")
-        event: BroadcastEvent
-        try:
-            async for event in subscriber:
-                logger.info(event)
-                yield event.message
-        finally:
-            logger.info("Unsubscribed")
