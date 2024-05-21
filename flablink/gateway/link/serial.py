@@ -271,7 +271,8 @@ class Frame(object):
 
 
 class SerialLink(AbstractLink):
-    def __init__(self, instrument_config: InstrumentConfig):
+    def __init__(self, instrument_config: InstrumentConfig, emit_events=True):
+        self.emit_events = emit_events
         # Instrument configuration
         self.uid: str = instrument_config.uid
         self.name: str = instrument_config.name
@@ -289,20 +290,22 @@ class SerialLink(AbstractLink):
         """Start serial server"""
         logger.log("info", "Starting serial server ...")
 
-        post_event(EventType.ACTIVITY_STREAM, **{
-            'id': self.uid,
-            'connection': "connecting",
-            'trasmission': "",
-        })
+        if self.emit_events:
+            post_event(EventType.ACTIVITY_STREAM, **{
+                'id': self.uid,
+                'connection': "connecting",
+                'trasmission': "",
+            })
 
         try:
             with serial.Serial(self.path, self.baudrate, timeout=2) as ser:
-                print("Listening on path {}.".format(self.path))        
-                post_event(EventType.ACTIVITY_STREAM, **{
-                    'id': self.uid,
-                    'connection': "connected",
-                    'trasmission': "",
-                })
+                print("Listening on path {}.".format(self.path))  
+                if self.emit_events:      
+                    post_event(EventType.ACTIVITY_STREAM, **{
+                        'id': self.uid,
+                        'connection': "connected",
+                        'trasmission': "",
+                    })
                 while True:
                     # read until a new line is found
                     line = ser.readline().decode(encoding="utf-8")
@@ -328,12 +331,13 @@ class SerialLink(AbstractLink):
             logger.log("info", f"UnicodeDecodeError: {e}")
         except Exception as e:
             logger.log("info", f"An unexpected error occured: {e}")
-        finally:     
-            post_event(EventType.ACTIVITY_STREAM, **{
-                'id': self.uid,
-                'connection': "disconnected",
-                'trasmission': "",
-            })
+        finally:    
+            if self.emit_events: 
+                post_event(EventType.ACTIVITY_STREAM, **{
+                    'id': self.uid,
+                    'connection': "disconnected",
+                    'trasmission': "",
+                })
             if self.auto_reconnect and trials <= 5:
                 logger.log("info", f"Reconnecting ... trial: {trials}")
                 trials += 1
@@ -355,24 +359,24 @@ class SerialLink(AbstractLink):
         self.messages = []
         self.response = None
         self.establishment = False
-          
-        post_event(EventType.ACTIVITY_STREAM, **{
-            'id': self.uid,
-            'connection': "connected",
-            'trasmission': "started",
-        })
+        if self.emit_events:
+            post_event(EventType.ACTIVITY_STREAM, **{
+                'id': self.uid,
+                'connection': "connected",
+                'trasmission': "started",
+            })
 
     def close(self):
         logger.log("info", "Closing session: neutral state")
         self.messages = None
         self.establishment = False
         self._received_messages = list()
-          
-        post_event(EventType.ACTIVITY_STREAM, **{
-            'id': self.uid,
-            'connection': "connected",
-            'trasmission': "ended",
-        })
+        if self.emit_events:
+            post_event(EventType.ACTIVITY_STREAM, **{
+                'id': self.uid,
+                'connection': "connected",
+                'trasmission': "ended",
+            })
 
     def to_str(self, command):
         if not command:

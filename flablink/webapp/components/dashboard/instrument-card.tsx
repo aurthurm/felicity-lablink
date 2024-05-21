@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button"
 import {
   Zap,
   ZapOff,
@@ -9,7 +8,6 @@ import {
 import {
   Card,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -40,19 +38,26 @@ export default function InstrumentCard({ instrument }: any) {
         }).catch((err) => { console.error(err); });
     }
   return (
-    <Card className="w-[350px]">
+    <Card className="w-[400px]">
       <CardHeader className="mb-0 pb-2">
-        <CardTitle>{ instrument?.name }</CardTitle>
-        <CardDescription>last transmitted 2 minutes ago</CardDescription>
-        {(instrument?.connection === "connecting") && <RefreshCcw size={24} />}
-        {(instrument?.connection === "connected") && <Zap size={24} /> }
-        {(instrument?.connection === "disconnected") && <ZapOff size={24} />}
-        {(instrument?.trasmission === "started") && <Satellite size={24} />}
+        <div className="flex justify-between">
+          <CardTitle className="text-slate-600">{ instrument?.name }</CardTitle>
+          <div className="flex justify-start items-center gap-x-8">
+            {(instrument?.connection === "disconnected") && <span className="text-red-500"><ZapOff size={24} /></span>}
+            {(instrument?.connection === "connecting") && <span className="text-slate-500"><RefreshCcw size={24} /></span>}
+            {(instrument?.connection === "connected") && <span className="text-green-500"><Zap size={24} /></span> }
+            {(instrument?.trasmission === "started") && <span className="text-sky-500"><Satellite size={24} /></span>}
+          </div>
+        </div>
+        <CardDescription>
+          <span className="text-leading italic">
+            {(instrument?.connection === "disconnected") 
+            ? "Disconnected" : (instrument?.connection === "connecting")
+            ? "Connecting" : (instrument?.trasmission === "started") 
+            ? "Transmiting" : "Connected"}
+          </span>
+        </CardDescription>
       </CardHeader>
-      <CardFooter className="mt-0 pt-0 flex justify-between">
-        <Button variant="outline" className="pointer-events-none">Disconnected</Button>
-        <Button variant="ghost" >Connect</Button>
-      </CardFooter>
     </Card>
   )
 }

@@ -23,6 +23,7 @@ import {
   CarouselContent,
   CarouselItem,
 } from "@/components/ui/carousel"
+import Autoplay from "embla-carousel-autoplay"
 import InstrumentCard from "@/components/dashboard/instrument-card";
 import LayoutAdmin from "@/components/layouts/admin";
 
@@ -104,8 +105,8 @@ function DashBoardPage() {
         const delta = secondsElapsed / rangeVal;
         return formatter.format(Math.round(delta), rangeType);
       }
-    }}
-   
+    }
+  }
 
   const minToTimeAgo = (minutes: number) => {
       if (minutes <= 0) {
@@ -131,18 +132,23 @@ function DashBoardPage() {
       }
   }
 
-  function timeLineETL(data: DailyData[] | HourlyData[] | WeeklyData[], target: string, instrumentId: number | null = null): { columns: string[], values: number[] }{
-    // Filter data points based on the provided instrument ID
-    const filteredData = instrumentId ? data.filter(point => point.instrument_uid === instrumentId) : data;
+  function timeLineETL(dataset: DailyData[] | HourlyData[] | WeeklyData[], target: string): { columns: string[], data: any[] }{
+    dataset = dataset.map((item: any) => ({...item, instrument: instrumentName(item["instrument_uid"])}))
+    return {
+      columns: ['hour', ...Array.from(new Set(dataset.map((item: any) => item.instrument)))],
+      data: Array.from(new Set(dataset.map((item: any) => item[target]))).map(hour => {
+        const hourData = dataset.filter((item: any) => item[target] === hour);
+        return {
+          hour: hour,
+          ...hourData.reduce((acc, current:any) => {
+            return { ...acc, [current["instrument"]]: current.count };
+          }, {})
+        };
+      }),
+    };
+  }
 
-    // Extract date and count values
-    const dates = filteredData.map((point: any) => point[target]);
-    const counts = filteredData.map(point => point.count);
-
-    return { columns: dates, values: counts };
-}
-
-  const plotChart = (data: DailyData[] | HourlyData[] | WeeklyData[], id: string, target: string, title: string = "", instrumentId: number | null = null) => {
+  const plotChart = (data: DailyData[] | HourlyData[] | WeeklyData[], id: string, target: string, title: string = "") => {
     let daChartDom = document.getElementById(id);
 
     if (daChartDom && echarts.getInstanceByDom(daChartDom)) {
@@ -151,30 +157,29 @@ function DashBoardPage() {
 
     let daChart = echarts.init(daChartDom);
 
-    const series = timeLineETL(data, target, instrumentId);
+    const dataset = timeLineETL(data, target);
+    console.log(dataset)
 
     daChart.setOption({
       title: {
         text: title,
         left: 'center'
       },
-      xAxis: {
-        type: 'category',
-        data: series.columns
-      },
-      yAxis: {
-        type: 'value'
-      },
-      series: [
-        {
-          data: series.values,
-          type: 'bar',
-          showBackground: true,
-          backgroundStyle: {
-            color: 'rgba(180, 180, 180, 0.2)'
-          }
+      legend: { y: 30 },
+      tooltip: {},
+      dataset: {
+        dimensions: dataset.columns,
+        source: dataset.data,
+        showBackground: true,
+        backgroundStyle: {
+          color: 'rgba(180, 180, 180, 0.2)'
         }
-      ]
+      },
+      xAxis: { type: 'category' },
+      yAxis: {},
+      // Declare several bar series, each will be mapped
+      // to a column of dataset.source by default.
+      series: [{ type: 'bar' }, { type: 'bar' }]
     });
 
   }
@@ -198,7 +203,10 @@ function DashBoardPage() {
                   opts={{
                     align: "center",
                     loop: true,
-                  }} 
+                  }}
+                  plugins={[
+                    Autoplay({delay: 3000}),
+                  ]} 
                   orientation='horizontal'
                   className="w-full max-w-xs text-xs text-muted-foreground">
                   <CarouselContent>
@@ -279,6 +287,7 @@ function DashBoardPage() {
         </div>
 
         <div className="col-span-3 flex flex-col gap-2">
+          <h2 className='font-bold uppercase text-slate-600 text-2xl mb-4'>Instrument Connection</h2>
           {instruments.map((instrument) => (<InstrumentCard instrument={instrument} key={instrument.uid} />))}
         </div>
       </div>

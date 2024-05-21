@@ -10,7 +10,7 @@ def trial():
     R|2|^^^HIV1mlDBS^HIV1.0mlDBS^489932^11790271^^I|Detected|||||R||naralabs^naralabs||20190902191654|275022112
     R|3|^^^HIV1mlDBS^HIV1.0mlDBS^489932^11790271^^P|28.21|cycle number||||R||naralabs^naralabs||20190902191654|275022112
     """
-    Transformer().transform_message(msg)
+    Transformer().adapter.process(msg)
 
 
 def hl7Try():
@@ -26,7 +26,7 @@ def hl7Try():
     OBX|4|ST|70241-5^HIV^LN|1/2|< Titer min|||""|||F|||||Lyna||C6800/8800^Roche^^~Unknown^Roche^^~ID_000000000012076380^IM300-002765^^|20230120144614|||||||||386_neg^^99ROC~385_pos^^99ROC
     TCD|70241-5^HIV^LN|^1^:^0
     """
-    Transformer().transform_message(hl_mess)
+    Transformer().adapter.process(hl_mess)
 
 
 def hpvTry():
@@ -43,7 +43,7 @@ def hpvTry():
     R|7|^^^HPV^IC Cutoff^^1||||||F\R||||20230222192433|
     L|1|N
     """
-    Transformer().transform_message(ms)
+    Transformer().adapter.process(ms)
 
 
 def err():
@@ -56,8 +56,9 @@ def err():
     R|3|^^^HIV1mlDBS^HIV1.0mlDBS^381303^10003187^^P|-1.00|cycle number||||R||BRIAN PAKARIMWA^BRIAN PAKARIMWA||20230713214311|275022096
     L|1
     """
-    Transformer().transform_message(ms)
-
+    msg = Transformer().adapter.process(ms)
+    assert msg["instrument"] == "m2000"
+    assert msg["keyword"] == "HIV1mlDBS"
 
 if __name__ == "__main__":
     hpvTry()

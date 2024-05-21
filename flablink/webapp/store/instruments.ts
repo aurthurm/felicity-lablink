@@ -71,7 +71,6 @@ export const useInstrumentsStore = create<InstrumentsState>((set) => ({
   },
   updateActivity: (payload: any) => {
     payload = JSON.parse(payload);
-    console.log(payload, payload.id, payload['id']);
     set((state) => ({
       instruments: state.instruments.map((i) => {
         if (i.uid === payload?.id) {
