@@ -1,1 +1,1 @@
-from db.models import DBModel  # noqa
+from felicity.db.models import DBModel  # noqa
