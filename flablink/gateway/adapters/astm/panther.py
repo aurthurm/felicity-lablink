@@ -4,7 +4,7 @@
 #
 # Copyright 2019-2020 National Microbiology Reference Laboratory (NMRL).
 
-from flablink.gateway.adapters.astm.base import ASTMBaseAdapter
+from flablink.gateway.adapters.astm.abstract import ASTMBaseAdapter
 
 
 class PantherASTMAdapter(ASTMBaseAdapter):
@@ -153,6 +153,7 @@ class PantherASTMAdapter(ASTMBaseAdapter):
             data["keyword"] = ad.results_record["TestID"]
             data["result"] = ad.results_record["Measurement"]
             data["capture_date"] = ad.results_record["DateTimeTestCompleted"]
+            data["instrument"] = self.header_record["SenderName"]   
             data["raw_message"] = msg
             out_data.append(data)
         return out_data

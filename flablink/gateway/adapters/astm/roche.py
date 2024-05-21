@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from flablink.gateway.adapters.astm.base import ASTMBaseAdapter
+from flablink.gateway.adapters.astm.abstract import ASTMBaseAdapter
 
 
 class RocheASTMPlusAdapter(ASTMBaseAdapter):
@@ -125,6 +125,7 @@ class RocheASTMPlusAdapter(ASTMBaseAdapter):
         data["keyword"] = self.results_record["TestID"]
         data["result"] = self.results_record["DataMeasurementResultScalar"]
         data["capture_date"] = self.results_record["DateTimeTestCompleted"]
+        data["instrument"] = self.header_record["ProtocolVersion"]
         data["raw_message"] = self.message
 
         return [data]

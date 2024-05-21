@@ -2,7 +2,7 @@
 
 import argparse
 
-from flablink.gateway.logger import Logger
+from gateway.logger import Logger
 logger = Logger(__name__, __file__)
 
 def main():
