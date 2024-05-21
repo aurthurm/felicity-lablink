@@ -1,13 +1,5 @@
 #
-
-INTEPRETATIONS = {
-    "< Titer min": "< 20",
-    "< Titer Min": "< 20",
-    "> Titer max": "> 10000000",
-    "> Titer Max": "> 10000000"
-}
-
-
+from .conf import INTEPRETATIONS
 
 class BaseParser:
     def try_cast(self, val):
@@ -69,18 +61,17 @@ class ResultParser(IntResultHandler, StringResultParser):
         for Titres recalculate titres based on test unit
         """
         val = self.try_cast(self.result)
-        if isinstance(val, str):
-            return self.handle(val)
-
-        if not self.test_unit:
-            return val
-
-        if self.quotient == 0:
-            return val
+        if isinstance(val, str): return self.handle(val)
+        if not self.test_unit: return val
+        if self.test_unit.lower().strip() in ["copies/ml"]: return val
+        if self.quotient == 0: return val
 
         multiplier = self.multiplier(self.quotient)
         if self.quotient > 0:
             return val * multiplier
+        # hack for cobas5800 to represent "< Titre min"
+        elif self.quotient == -1 and val == 200:
+            return "< 20"
 
         # self.quotient < 0
         return self.round(val / multiplier)
