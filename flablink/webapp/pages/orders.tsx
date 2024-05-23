@@ -1,5 +1,5 @@
 import { Grid, _ } from 'gridjs-react';
-import { RowSelection } from "gridjs/plugins/selection";
+// import { RowSelection } from "gridjs/plugins/selection";
 
 import "gridjs/dist/theme/mermaid.css";
 

@@ -7,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import SettingsLayout from "@/components/layouts/settings";
 import { useEffect, useState } from "react";
@@ -21,7 +20,6 @@ function LimsSettings() {
   const [password, setPassword] = useState("")
   const [max_attempts, setMaxAttempts] = useState(10)
   const [attempt_interval, setAttemptInterval] = useState(10)
-  const [is_active, setIsActive] = useState(true) 
 
   useEffect(() => {
     fetch(useUrl("/lims-settings"))
@@ -35,7 +33,6 @@ function LimsSettings() {
       setPassword(data.password);
       setMaxAttempts(data.max_attempts);
       setAttemptInterval(data.attempt_interval);
-      setIsActive(data.is_active);
     })
     .catch((err) => { console.error(err)})
   }, [fetch])

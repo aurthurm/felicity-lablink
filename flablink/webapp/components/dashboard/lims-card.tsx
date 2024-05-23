@@ -2,10 +2,9 @@ import {
   Zap,
   ZapOff,
   RefreshCcw,
-  Satellite,
   ShieldAlert,
   FileSearch,
-  Replace, Send
+  Replace
 } from "lucide-react"
 
 import {

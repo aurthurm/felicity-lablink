@@ -38,7 +38,7 @@ function DashBoardPage() {
     created_daily, created_hourly,
     synced_daily, synced_hourly,
     forwarders,
-    fetchStatictics, fetchForwarder, forwarderActivity, fetchForwarderPerf
+    fetchStatictics, fetchForwarder, forwarderActivity, // fetchForwarderPerf
   } = useDashBoardStore()
 
   useEffect(() => {
@@ -57,7 +57,6 @@ function DashBoardPage() {
   useEffect(() => {
     if (lastMessage !== null) {
       const data = JSON.parse(lastMessage.data)
-      console.log(data.target, data)
       if (data.target === "instrument") {
         instrumentActivity(data);
       }
