@@ -48,73 +48,91 @@ class SocketLink(AbstractLink):
         # ACK | NACK
         self.msg_id = None
         self.expect_ack = False
-
+    
     def start_server(self, trials=1):
         """Start serial server"""
         logger.log("info", "Starting socket server ...")
         if self.emit_events:
-            post_event(EventType.ACTIVITY_STREAM, **{
-                'id': self.uid,
-                'connection': "connecting",
-                'trasmission': "",
-            })
+            post_event(EventType.INSTRUMENT_STREAM, id=self.uid, connection="connecting", trasmission="")
 
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                sckt = s
-                sckt.settimeout(self.timeout)
+                s.settimeout(self.timeout)
                 if self.socket_type == SocketType.CLIENT:
-                    sckt.connect((self.host, self.port))
-
-                if self.socket_type == SocketType.SERVER:
-                    s.bind((self.host, self.port))
-                    s.listen(1)
-                    sckt, _ = s.accept()
-                
-                self.socket = sckt
-                if self.emit_events:
-                    post_event(EventType.ACTIVITY_STREAM, **{
-                        'id': self.uid,
-                        'connection': "connected",
-                        'trasmission': "",
-                    })
-                
-                while True:
-                    data = self._read_data(sckt)
-                    if data == b'':
-                        raise Exception("Connection closed")
-
-                    # Is this a new session ?
-                    if not self.is_open():
-                        self.open()
-
-                    self.process(data)
-
-                    # Does the receiver has to send something back?
-                    response = self.get_response()
-                    if response == "ACK":
-                        self.ack()
-                    if response == "NACK":
-                        self.nack()
-            
+                    self._start_client(s)
+                elif self.socket_type == SocketType.SERVER:
+                    self._start_server(s)
         except OSError as e:
             logger.log("info", f"OS error: {e}")
         except Exception as e:
-            logger.log("info", f"An unexpected error occured: {e}")
-        finally:     
-            self.socket = None
-            if self.emit_events:
-                post_event(EventType.ACTIVITY_STREAM, **{
-                    'id': self.uid,
-                    'connection': "disconnected",
-                    'trasmission': "",
-                })
+            logger.log("info", f"An unexpected error occurred: {e}")
+        finally:
+            self._cleanup(trials)
+    
+    def _cleanup(self, trials):
+        self.socket = None
+        if self.emit_events:
+            post_event(EventType.INSTRUMENT_STREAM, id=self.uid, connection="disconnected", trasmission="")
+            
+        if self.auto_reconnect and trials <= 5:
+            logger.log("info", f"Reconnecting ... trial: {trials}")
+            trials += 1
+            time.sleep(5)
+            self.start_server(trials)
 
-            if self.auto_reconnect and trials <= 5:
-                logger.log("info", f"Reconnecting ... trial: {trials}")
-                trials += 1
-                time.sleep(5)
-                self.start_server(trials)
+    def _start_client(self, s):
+        """Start client socket"""
+        logger.log("info", "attempting client connection ...")
+        s.connect((self.host, self.port))
+        if self.emit_events:
+            post_event(EventType.INSTRUMENT_STREAM, id=self.uid, connection="connected", transmission="")
+
+        s.settimeout(None)
+        self._handle_connection(s)
+
+    def _start_server(self, s):
+        """Start server socket"""
+        logger.log("info", "attempting Server connection...")
+        s.bind((self.host, self.port))
+        s.listen(1)
+
+        s.settimeout(None)
+        if self.emit_events:
+            post_event(EventType.INSTRUMENT_STREAM, id=self.uid, connection="connected", transmission="")
+
+        while True:
+            logger.log("info", "Server listening for connections ...")
+            sckt, address = s.accept()
+            logger.log("info", f"Accepted connection from {address}")
+            self._handle_connection(sckt)
+    
+    def _handle_connection(self, sckt):
+        self.socket = sckt
+
+        try:
+            while True:
+                data = self._read_data(sckt)
+                if data == b'':
+                    raise Exception("Connection closed")
+
+                # Is this a new session ?
+                if not self.is_open():
+                    self.open()
+
+                self.process(data)
+
+                # Does the receiver has to send something back?
+                response = self.get_response()
+                if response == "ACK":
+                    self.ack()
+                if response == "NACK":
+                    self.nack()
+        except Exception as e:
+            logger.log("error", f"Error during connection handling: {e}")
+        finally:
+            sckt.close()
+            logger.log("info", "Connection closed")
+            post_event(EventType.INSTRUMENT_STREAM, id=self.uid, connection="connected", trasmission="ended")
 
     def _read_data(self, sckt): 
         try:
@@ -139,11 +157,7 @@ class SocketLink(AbstractLink):
         self.response = None
         self.establishment = False
         if self.emit_events:  
-            post_event(EventType.ACTIVITY_STREAM, **{
-                'id': self.uid,
-                'connection': "connected",
-                'trasmission': "started",
-            })
+            post_event(EventType.INSTRUMENT_STREAM, id=self.uid, connection="connected", trasmission="started")
         
     def close(self):
         logger.log("info", "Closing session: neutral state")
@@ -151,22 +165,9 @@ class SocketLink(AbstractLink):
         self.establishment = False
         self._received_messages = list()
         if self.emit_events:  
-            post_event(EventType.ACTIVITY_STREAM, **{
-                'id': self.uid,
-                'connection': "connected",
-                'trasmission': "ended",
-            })
+            post_event(EventType.INSTRUMENT_STREAM, id=self.uid, connection="connected", trasmission="ended")
 
     def send_message(self, message: bytes | str | HL7Message):
-        """Wraps a byte string, unicode string, or :py:class:`HL7Message`
-        in a MLLP container and send the message to the server
-
-        If message is a byte string, we assume it is already encoded properly.
-        If message is unicode or  :py:class:`HL7Message`, it will be encoded
-        according to  :py:attr:`hl7.client.MLLPClient.encoding`
-
-        """
-        
         if isinstance(message, bytes):
             # Assume we have the correct encoding
             binary = message
@@ -193,11 +194,7 @@ class SocketLink(AbstractLink):
         # wait for the ACK/NACK
         if self.expect_ack:
             ACK = self.socket.recv(RECV_BUFFER)
-            ACK = ACK.replace(SB, b"")
-            ACK = ACK.replace(EB, b"")
-            ACK = ACK.decode()
-
-            # Returning ACK string
+            ACK = ACK.replace(SB, b"").replace(EB, b"").decode()
             return ACK
 
     def process(self, data: bytes) -> None:
@@ -268,17 +265,9 @@ class SocketLink(AbstractLink):
         """Handles an End Of Transmission message
         """
         logger.log("info", "Transfer phase completed: handle_eot")
-        msgs = []
-        for m in self._received_messages:
-            if isinstance(m, bytes):
-                msgs.append(m.decode(self.encoding))
-            else:
-                msgs.append(m)
-        
+        msgs = [m.decode(self.encoding) if isinstance(m, bytes) else m for m in self._received_messages]
         self.show_message(msgs)
         self.eot_offload(self.uid, msgs)
-
-        # Go to neutral state
         self.response = None
         self.close()
 

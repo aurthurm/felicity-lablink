@@ -17,4 +17,6 @@ class Instrument(DBModel):
     connection_type = Column(String(10), nullable=True) # tcpip, serial
     protocol_type = Column(String(10), nullable=True) # astm, hl7
     socket_type = Column(String(10), nullable=True) # client or server
-
+    # connection status upated by the gateway
+    connection = Column(String(20), default="disconnected") # connected, disconnected
+    transmission = Column(String(20), default="")  # "ended" ?? mabe not needed

@@ -7,7 +7,7 @@ from flablink.gateway.models.settings import (
     LinkSettings,
     LimsSettings
 )
-
+from flablink.gateway.models.performance import Forwarder
 
 
 
@@ -84,3 +84,11 @@ def seed_result_translations():
     for _i in INTEPRETATIONS.keys():
         if not ResultTranslation().get(original=_i):
             ResultTranslation(original=_i, translated=INTEPRETATIONS[_i]).save()
+
+def seed_performance_tracker():
+    if not Forwarder().all():
+        Forwarder(
+            connection="disconnected",
+            activity="",
+            message=""
+        ).save()

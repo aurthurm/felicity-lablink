@@ -8,12 +8,18 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from requests.auth import HTTPBasicAuth
 
 from flablink.config import SEND_TO_QUEUE
-from flablink.gateway.services.order import OrderService
-from flablink.gateway.forward.conf import EXCLUDE_RESULTS, KEYWORDS_MAPPING, LIMS_SETTINGS, LINK_SETTINGS, SyncStatus
-from flablink.gateway.db.session import engine, test_db_connection
-from flablink.gateway.forward.result_parser import ResultParser, HologicEIDInterpreter
-from flablink.gateway.logger import Logger
+from flablink.gateway.extensions.event.base import EventType
+from flablink.gateway.extensions.event.event import post_event
+from flablink.gateway.services.order.order import OrderService
+from flablink.gateway.forward.conf import (
+    EXCLUDE_RESULTS, KEYWORDS_MAPPING, LIMS_SETTINGS, LINK_SETTINGS, SyncStatus
+)
+from flablink.gateway.forward.result_parser import (
+    ResultParser, HologicEIDInterpreter
+)
 from flablink.gateway.helpers import has_special_char
+from flablink.gateway.db.session import test_db_connection
+from flablink.gateway.logger import Logger
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 logger = Logger(__name__, __file__)
@@ -25,11 +31,8 @@ class FowardOrderHandler:
 
     @staticmethod
     def sanitise(incoming):
-        incoming = list(incoming)
-        for index, item in enumerate(incoming):
-            if isinstance(item, str):
-                incoming[index] = item.replace(';', ' ').strip()
-        return incoming
+        """Sanitise incoming data by removing special characters."""
+        return [item.replace(';', ' ').strip() if isinstance(item, str) else item for item in incoming]
 
     def fetch_astm_results(self): 
         return self.order_service.find_all(
@@ -72,6 +75,7 @@ class SenaiteHandler:
         self.session.timeout = self.timeout
 
     def test_senaite_connection(self) -> bool:
+        """Test connection to Senaite."""
         self._auth_session()
         url = f"{self.api_url}/"
         logger.log("info", f"SenaiteHandler: intiating connection to: {url}")
@@ -93,6 +97,7 @@ class SenaiteHandler:
 
     @staticmethod
     def error_handler(url=None, res=None, request_id=None):
+        """Log errors encountered during requests."""
         logger.log("info", f"SenaiteHandler: Error Status Codel::{request_id}:: {res.status_code} Reason: {res.reason}")
         logger.log("info", f"SenaiteHandler: Error Detail::{request_id}:: {res.text}")
 
@@ -100,21 +105,30 @@ class SenaiteHandler:
     def decode_response(response):
         return json.loads(response)
 
-    def search_analyses_by_request_id(self, request_id: str):
+    def search_analyses_by_request_id(self, request_id: str, order_uid=None):
         """Searches senaite's Analysis portal for results
         @param request_id: Sample ID e.g BP-XXXXX
         @return dict
         """
+        success = True
+        data = None
+        
         # searching using an ID.
         search_url = f"{self.api_url}/search?getRequestID={request_id.upper()}&catalog=bika_analysis_catalog"
         logger.log("info", f"SenaiteHandler: Searching ... {search_url}")
+
+        post_event(EventType.FORWARD_STREAM, id=order_uid, search_started=datetime.now(), connection="connected", activity="searching", message="")
         response = self.session.get(search_url)
         if response.status_code == 200:
+            success = True
             data = self.decode_response(response.text)
-            return True, data
         else:
+            success = False
+            data = None
             self.error_handler(search_url, response, request_id)
-            return False, None
+
+        post_event(EventType.FORWARD_STREAM, id=order_uid, search_ended=datetime.now(), connection="connected", activity="idle", message="")
+        return success, data
 
     def update_resource(self, uid, payload, request_id: str):
         """ create a new resource in senaite: single or bundled """
@@ -175,10 +189,7 @@ class SenaiteHandler:
             FowardOrderHandler().update_result(order_uid, SyncStatus.SKIPPED, "Has special characters")
             return False
 
-        searched, search_payload = self.search_analyses_by_request_id(
-            request_id
-        )
-
+        searched, search_payload = self.search_analyses_by_request_id(request_id, order_uid)
         if not searched:
             return False
 
@@ -206,9 +217,11 @@ class SenaiteHandler:
         }
 
         logger.log("info", f"SenaiteHandler:  ---submitting result--- ")
+        post_event(EventType.FORWARD_STREAM, id=order_uid, update_started=datetime.now(), connection="connected", activity="submitting", message="")
         submitted, submission = self.update_resource(
             search_data.get("uid"), submit_payload, request_id
         )
+        post_event(EventType.FORWARD_STREAM, id=order_uid, update_ended=datetime.now(), connection="connected", activity="idle", message="")
 
         if not submitted:
             logger.log("info", f"SenaiteHandler: Submission Response for checking : {submission}")
@@ -358,14 +371,21 @@ class SenaiteQueuer:
 
 class ResultFowarder(FowardOrderHandler, SenaiteHandler):
     def run(self):
+        # reset connection
+        post_event(EventType.FORWARD_STREAM, id=None, connection="connecting", activity="idle", message="")
 
         if not test_db_connection():
             logger.log("info", "ResultInterface: Failed to connect to db, backing off a little ...")
+            post_event(EventType.FORWARD_STREAM, id=None, connection="error", activity="test-database-connection", message="Failed to connect to the db")
             return
 
         if not self.test_senaite_connection():
+            post_event(EventType.FORWARD_STREAM, id=None, connection="error", activity="test-senaite-connection", message="Failed to connect to senaite")
             logger.log("info", "ResultInterface: Failed to connectto Senaite, backing off a little ...")
             return
+        
+        # connections established
+        post_event(EventType.FORWARD_STREAM, id=None, connection="connected", activity="fetch-orders", message="")
 
         logger.log("info", "ResultInterface: All connections were successfully estabished :)")
 
@@ -417,3 +437,5 @@ class ResultFowarder(FowardOrderHandler, SenaiteHandler):
             #
             if senaite_updated:
                 self.update_result(order.uid, SyncStatus.SYNCED)
+
+        post_event(EventType.FORWARD_STREAM, id=None, connection="disconnected", activity="", message="")

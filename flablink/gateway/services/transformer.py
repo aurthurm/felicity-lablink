@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from flablink.gateway.logger import Logger
-from flablink.gateway.services.order import OrderService
+from flablink.gateway.services.order.order import OrderService
 from flablink.gateway.adapters import MessageAdapter
 
 logger = Logger(__name__, __file__)

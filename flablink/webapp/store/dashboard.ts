@@ -29,6 +29,22 @@ export type WeeklyData = {
     count: number;
 };
 
+export type Forwarder = {
+    uid: number;
+    connection: "connected" | "disconnected" | "error";
+    activity: "searching" | "submitting" | "idle";
+    message: string;
+}
+
+export type ForwarderPerf = {
+    search_started: string;
+    search_ended: string;
+    update_started: string;
+    update_ended: string;
+    message: string;
+    order_uid: number
+}
+
 type DashBoardState = {    
     sync: Syncs[];
     last_creation: LastCreation[];
@@ -39,7 +55,12 @@ type DashBoardState = {
     synced_hourly: HourlyData[];
     synced_daily: DailyData[];
     synced_weekly: WeeklyData[];
+    forwarders: Forwarder[];
+    forwarder_perf: ForwarderPerf[];
     fetchStatictics: () => Promise<void>;
+    fetchForwarder: () => Promise<void>;
+    fetchForwarderPerf: () => Promise<void>;
+    forwarderActivity: (payload: any) => void;
 };
 
 
@@ -53,10 +74,27 @@ export const useDashBoardStore = create<DashBoardState>((set) => ({
     synced_hourly: [],
     synced_daily: [],
     synced_weekly: [],
+    forwarders: [],
+    forwarder_perf: [],
     fetchStatictics: async () => {
         fetch(useUrl("/orders/stats")).then((res) => res.json()).then((data) => {
         set((state) => ({...state, ...data}));
         }).catch((err) => { console.error(err); });
+    },
+    fetchForwarder: async () => {
+        fetch(useUrl("/forwarder")).then((res) => res.json()).then((data) => {
+        set(({forwarders: data}));
+        }).catch((err) => { console.error(err); });
+    },
+    fetchForwarderPerf: async () => {
+        fetch(useUrl("/forwarder-performance")).then((res) => res.json()).then((data) => {
+        set(({forwarder_perf: data}));
+        }).catch((err) => { console.error(err); });
+    },
+    forwarderActivity: (payload: any) => {
+      set((state) => ({
+        forwarders: state.forwarders.map((i) => ({ ...i,  ...payload})),
+      }));
     }
 }));
 

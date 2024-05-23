@@ -2,15 +2,10 @@ from datetime import datetime, timedelta
 
 from sqlalchemy import select, func, text
 from sqlalchemy.orm import Session
-from flablink.gateway.models import (
-    Order,
-    ResultExclusions,
-    ResultTranslation,
-    KeywordMapping
-)
+from flablink.gateway.models import Order
 from flablink.gateway.logger import Logger
 from flablink.gateway.helpers import has_special_char
-from flablink.config import DB_CLEAR_DATA_OVER_DAYS
+from flablink.gateway.forward.conf import LINK_SETTINGS
 from flablink.gateway.services.base import BaseService
 from flablink.gateway.services.raw_data import RawDataService
 from flablink.gateway.db.session import engine
@@ -33,9 +28,9 @@ class OrderService(BaseService[Order]):
         super().__init__(Order)
     
     def clean(self):
-        cutoff_date = datetime.now() - timedelta(days=DB_CLEAR_DATA_OVER_DAYS)
+        cutoff_date = datetime.now() - timedelta(days=LINK_SETTINGS.clear_data_over_days)
         logger.log("info", 
-                   f"OrderService: cleaning raw messages and orders greater than {cutoff_date} == {DB_CLEAR_DATA_OVER_DAYS} days ago...")
+                   f"OrderService: cleaning raw messages and orders greater than {cutoff_date} == {LINK_SETTINGS.clear_data_over_days} days ago...")
         raws = self.raw_data_service.find_all(filters={"created_at__le": cutoff_date})
         for raw in raws:
             orders = self.model.get_all(raw_data_uid=raw.uid)
@@ -218,18 +213,3 @@ class OrderService(BaseService[Order]):
             results = session.execute(synced_weekly)
             stats["synced_weekly"] = results.all()
         return stats
-
-
-class ResultExclusionsService(BaseService[ResultExclusions]):
-    def __init__(self):
-        super().__init__(ResultExclusions)
-
-
-class ResultTranslationService(BaseService[ResultTranslation]):
-    def __init__(self):
-        super().__init__(ResultTranslation)
-
-
-class KeywordMappingService(BaseService[KeywordMapping]):
-    def __init__(self):
-        super().__init__(KeywordMapping)

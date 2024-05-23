@@ -3,8 +3,9 @@ from fastapi import Depends
 
 from sqlalchemy import or_
 from flablink.gateway.api.base import BaseRouter
-from flablink.gateway.services.order import (
-    OrderService, ResultExclusionsService, ResultTranslationService, KeywordMappingService
+from flablink.gateway.services.order.order import OrderService
+from flablink.gateway.services.order.other import (
+    ResultExclusionsService, ResultTranslationService, KeywordMappingService
 )
 from flablink.gateway.schemas.order import (
     OrderSchema, OrderSchemaDB,

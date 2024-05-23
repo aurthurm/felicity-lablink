@@ -291,7 +291,7 @@ class SerialLink(AbstractLink):
         logger.log("info", "Starting serial server ...")
 
         if self.emit_events:
-            post_event(EventType.ACTIVITY_STREAM, **{
+            post_event(EventType.INSTRUMENT_STREAM, **{
                 'id': self.uid,
                 'connection': "connecting",
                 'trasmission': "",
@@ -301,7 +301,7 @@ class SerialLink(AbstractLink):
             with serial.Serial(self.path, self.baudrate, timeout=2) as ser:
                 print("Listening on path {}.".format(self.path))  
                 if self.emit_events:      
-                    post_event(EventType.ACTIVITY_STREAM, **{
+                    post_event(EventType.INSTRUMENT_STREAM, **{
                         'id': self.uid,
                         'connection': "connected",
                         'trasmission': "",
@@ -333,7 +333,7 @@ class SerialLink(AbstractLink):
             logger.log("info", f"An unexpected error occured: {e}")
         finally:    
             if self.emit_events: 
-                post_event(EventType.ACTIVITY_STREAM, **{
+                post_event(EventType.INSTRUMENT_STREAM, **{
                     'id': self.uid,
                     'connection': "disconnected",
                     'trasmission': "",
@@ -360,7 +360,7 @@ class SerialLink(AbstractLink):
         self.response = None
         self.establishment = False
         if self.emit_events:
-            post_event(EventType.ACTIVITY_STREAM, **{
+            post_event(EventType.INSTRUMENT_STREAM, **{
                 'id': self.uid,
                 'connection': "connected",
                 'trasmission': "started",
@@ -372,7 +372,7 @@ class SerialLink(AbstractLink):
         self.establishment = False
         self._received_messages = list()
         if self.emit_events:
-            post_event(EventType.ACTIVITY_STREAM, **{
+            post_event(EventType.INSTRUMENT_STREAM, **{
                 'id': self.uid,
                 'connection': "connected",
                 'trasmission': "ended",

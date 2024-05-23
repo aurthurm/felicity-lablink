@@ -24,7 +24,7 @@ type InstrumentsState = {
   updateInstrument: (uid: number, instrument: Partial<Instrument>) => Promise<void>;
   fetchtInstruments: () => Promise<void>;
   deleteInstrument: (uid: number) => Promise<void>;
-  updateActivity: (payload: any) => void;
+  instrumentActivity: (payload: any) => void;
 };
 
 export const useInstrumentsStore = create<InstrumentsState>((set) => ({
@@ -57,7 +57,7 @@ export const useInstrumentsStore = create<InstrumentsState>((set) => ({
   },
   fetchtInstruments: async () => {
     fetch(useUrl('/instruments')).then((res) => res.json()).then((data) => {
-      set({ instruments: data.map((ins: Instrument) => ({...ins, connection: "disconnected", transmission: "ended"})) });
+      set({ instruments: data });
     }).catch((err) => { console.error(err); });
   },
   deleteInstrument: async (uid) => {
@@ -69,8 +69,7 @@ export const useInstrumentsStore = create<InstrumentsState>((set) => ({
       }));
     }).catch((err) => { console.error(err); });
   },
-  updateActivity: (payload: any) => {
-    payload = JSON.parse(payload);
+  instrumentActivity: (payload: any) => {
     set((state) => ({
       instruments: state.instruments.map((i) => {
         if (i.uid === payload?.id) {

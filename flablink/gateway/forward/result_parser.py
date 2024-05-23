@@ -78,8 +78,6 @@ class ResultParser(IntResultHandler, StringResultParser):
 
 
 class HologicEIDInterpreter(BaseParser):
-    value = None
-
     def __init__(self, value):
         self.value = value
 
@@ -87,17 +85,25 @@ class HologicEIDInterpreter(BaseParser):
     def output(self):
         val = self.try_cast(self.value)
         if isinstance(val, str):
-            if self.value in ["Not Detected", "Target Not Detected"]:
-                return "Negative"
-            elif self.value in ["<833", "< 833"]:
-                return "Weak Positive"
-            elif self.value in ["Invalid", "invalid"]:
-                return "Invalid"
+            return self.interpret_string_value()
         else:
-            if self.value <= 1900:
-                return "Weak Positive"
-            elif 1901 <= self.value <= 10000000:
-                return "Strong Positive"
-            else:
-                return "Strong Positive"
-        return None
+            return self.interpret_numeric_value()
+
+    def interpret_string_value(self):
+        string_to_interpretation = {
+            "Not Detected": "Negative",
+            "Target Not Detected": "Negative",
+            "<833": "Weak Positive",
+            "< 833": "Weak Positive",
+            "Invalid": "Invalid",
+            "invalid": "Invalid"
+        }
+        return string_to_interpretation.get(self.value, None)
+
+    def interpret_numeric_value(self):
+        if self.value <= 1900:
+            return "Weak Positive"
+        elif 1901 <= self.value <= 10000000:
+            return "Strong Positive"
+        else:
+            return "Strong Positive"

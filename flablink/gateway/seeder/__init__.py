@@ -7,7 +7,8 @@ from .seed import (
     seed_lims_settings,
     seed_keyword_mappings,
     seed_result_exclusions,
-    seed_result_translations
+    seed_result_translations,
+    seed_performance_tracker,
 )
 
 
@@ -18,4 +19,5 @@ def seed_all():
     seed_keyword_mappings()
     seed_result_exclusions()
     seed_result_translations()
+    seed_performance_tracker()
     logger.log("info", "Done Seeding all...")

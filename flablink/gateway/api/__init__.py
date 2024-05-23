@@ -11,6 +11,10 @@ from .settings import (
     lims_setting_routes, 
     link_setting_routes
 )
+from .performance import (
+    forwarder_routes,
+    forwarder_perf_routes
+)
 
 api = APIRouter()
 api.include_router(order_routes, prefix="/orders", tags=["Orders"])
@@ -20,3 +24,5 @@ api.include_router(keyword_mapping_routes, prefix="/keyword-mappings", tags=["Ke
 api.include_router(instrument_routes, prefix="/instruments", tags=["Instruments"])
 api.include_router(lims_setting_routes, prefix="/lims-settings", tags=["Lims Settings"])
 api.include_router(link_setting_routes, prefix="/link-settings", tags=["Link Settings"])
+api.include_router(forwarder_routes, prefix="/forwarder", tags=["Forwarder"])
+api.include_router(forwarder_perf_routes, prefix="/forwarder-performance", tags=["Forwarder Performance"])

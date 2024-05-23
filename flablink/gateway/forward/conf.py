@@ -3,9 +3,9 @@ from enum import IntEnum
 
 from flablink.gateway.services.settings import LimsSettings, LimsSettingsService
 from flablink.gateway.services.settings import LinkSettings, LinkSettingsService
-from flablink.gateway.services.order import ResultTranslationService
-from flablink.gateway.services.order import KeywordMappingService
-from flablink.gateway.services.order import ResultExclusionsService
+from flablink.gateway.services.order.other import ResultTranslationService
+from flablink.gateway.services.order.other import KeywordMappingService
+from flablink.gateway.services.order.other import ResultExclusionsService
 
 
 class SyncStatus(IntEnum):
@@ -14,7 +14,7 @@ class SyncStatus(IntEnum):
     SKIPPED = 2
 
 
-@lru_cache
+# @lru_cache
 def get_lims_settings() -> LimsSettings:
     lss = LimsSettingsService().first()
     if not lss:
@@ -23,7 +23,7 @@ def get_lims_settings() -> LimsSettings:
 LIMS_SETTINGS = get_lims_settings()
 
 
-@lru_cache
+# @lru_cache
 def get_link_settings() -> LinkSettings:
     lss = LinkSettingsService().first()
     if not lss:
@@ -32,7 +32,7 @@ def get_link_settings() -> LinkSettings:
 LINK_SETTINGS = get_link_settings()
 
 
-@lru_cache
+# @lru_cache
 def get_translations():
     translation_service = ResultTranslationService()
     translations = translation_service.find_all()
@@ -43,7 +43,7 @@ def get_translations():
 INTEPRETATIONS = get_translations()
 
 
-@lru_cache
+# @lru_cache
 def get_keyword_mappings():
     re_service = KeywordMappingService()
     mappings = re_service.find_all()
@@ -54,7 +54,7 @@ def get_keyword_mappings():
 KEYWORDS_MAPPING = get_keyword_mappings()
 
 
-@lru_cache
+# @lru_cache
 def get_exclusions():
     re_service = ResultExclusionsService()
     exclusions = re_service.find_all()

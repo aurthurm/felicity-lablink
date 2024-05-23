@@ -12,6 +12,8 @@ class InstrumentSchema(BaseModel):
     connection_type: str | None = None
     protocol_type: str | None = None
     socket_type: str | None = None
+    connection: str | None = None
+    transmission: str | None = None
 
 
 class InstrumentSchemaDB(InstrumentSchema):

@@ -1,20 +1,11 @@
-import useWebSocket, { ReadyState } from 'react-use-websocket';
+import useWebSocket from 'react-use-websocket';
 import * as echarts from 'echarts';
 import {
-  Activity,
-  ArrowUpRight,
-  CircleUser,
-  CreditCard,
-  DollarSign,
-  Menu,
-  Package2,
-  Search,
-  Users,
+  Hash,
 } from "lucide-react"
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -37,20 +28,23 @@ import {
 import { useEffect } from 'react';
 import { useWs } from '@/utils';
 import { WS_CLIENT_ID } from '@/constant';
+import LimsCard from '@/components/dashboard/lims-card';
 
 function DashBoardPage() {
   const { lastMessage } = useWebSocket(useWs(`/ws/${WS_CLIENT_ID}`));  
-  const { instruments, fetchtInstruments, updateActivity } = useInstrumentsStore()
+  const { instruments, fetchtInstruments, instrumentActivity } = useInstrumentsStore()
   const { 
     sync, last_creation, last_sync, 
     created_daily, created_hourly,
     synced_daily, synced_hourly,
-    fetchStatictics 
+    forwarders,
+    fetchStatictics, fetchForwarder, forwarderActivity, fetchForwarderPerf
   } = useDashBoardStore()
 
   useEffect(() => {
     fetchtInstruments();
     fetchStatictics();
+    fetchForwarder();
   },[])
 
   useEffect(() => {
@@ -62,7 +56,14 @@ function DashBoardPage() {
 
   useEffect(() => {
     if (lastMessage !== null) {
-      updateActivity(lastMessage.data);
+      const data = JSON.parse(lastMessage.data)
+      console.log(data.target, data)
+      if (data.target === "instrument") {
+        instrumentActivity(data);
+      }
+      if (data.target === "forwarder") {
+        forwarderActivity(data);
+      }
     }
   }, [lastMessage]);
 
@@ -158,7 +159,6 @@ function DashBoardPage() {
     let daChart = echarts.init(daChartDom);
 
     const dataset = timeLineETL(data, target);
-    console.log(dataset)
 
     daChart.setOption({
       title: {
@@ -195,7 +195,7 @@ function DashBoardPage() {
                 <CardTitle className="text-sm font-medium">
                   Total Samples
                 </CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <Hash className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{syncTileNumber(sync, 10)}</div>
@@ -226,7 +226,7 @@ function DashBoardPage() {
                 <CardTitle className="text-sm font-medium">
                   Synced
                 </CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <Hash className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{syncTileNumber(sync, 1)}</div>
@@ -241,7 +241,7 @@ function DashBoardPage() {
                 <CardTitle className="text-sm font-medium">
                   Pending Syncing
                 </CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <Hash className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{syncTileNumber(sync, 0)}</div>
@@ -256,7 +256,7 @@ function DashBoardPage() {
                 <CardTitle className="text-sm font-medium">
                   Skipped
                 </CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <Hash className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{syncTileNumber(sync, 3)}</div>
@@ -287,7 +287,11 @@ function DashBoardPage() {
         </div>
 
         <div className="col-span-3 flex flex-col gap-2">
-          <h2 className='font-bold uppercase text-slate-600 text-2xl mb-4'>Instrument Connection</h2>
+          <h2 className='font-bold uppercase text-slate-600 text-2xl mb-2'>LIMS Connection</h2>
+          {forwarders.map((forwarder) => (<LimsCard forwarder={forwarder} key={forwarder.uid} />))}
+          <hr className='mt-4 mb-0' />
+          <h2 className='font-bold uppercase text-slate-600 text-2xl'>Instrument Connection</h2>
+          <hr className='mb-4' />
           {instruments.map((instrument) => (<InstrumentCard instrument={instrument} key={instrument.uid} />))}
         </div>
       </div>

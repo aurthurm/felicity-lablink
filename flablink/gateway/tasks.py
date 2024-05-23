@@ -7,7 +7,7 @@ from apscheduler.triggers.cron import CronTrigger
 from flablink.gateway.db.session import job_store
 from flablink.gateway.services.connection import ConnectionService
 from flablink.gateway.forward.engine import ResultFowarder
-from flablink.gateway.services.order import OrderService
+from flablink.gateway.services.order.order import OrderService
 from flablink.gateway.forward.conf import LINK_SETTINGS
 
 from flablink.gateway.logger import Logger
