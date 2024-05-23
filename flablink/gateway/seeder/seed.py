@@ -49,7 +49,7 @@ def seed_keyword_mappings():
         "HI2CAP48": ["HI2CAP96", "VLDBS", "VLPLASMA", ],
         "HI2CAP96": ["HI2CAP96", "VLDBS", "VLPLASMA", ],
         # Roche 6800/8800
-        "HIVVL": ["VLPLASMA", "EID", ],
+        # "HIVVL": ["VLPLASMA", "EID", ], 
         "HIV": ["VLPLASMA", ],
         # "HIV-1-2-DBS": ["EID", ],
         # Hologic Panther/Alinity
