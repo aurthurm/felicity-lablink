@@ -105,7 +105,7 @@ class SenaiteHandler:
     def decode_response(response):
         return json.loads(response)
 
-    def search_analyses_by_request_id(self, request_id: str, order_uid=None):
+    def search_analyses_by_request_id(self, request_id: str, order_uid: int):
         """Searches senaite's Analysis portal for results
         @param request_id: Sample ID e.g BP-XXXXX
         @return dict
@@ -117,7 +117,7 @@ class SenaiteHandler:
         search_url = f"{self.api_url}/search?getRequestID={request_id.upper()}&catalog=bika_analysis_catalog"
         logger.log("info", f"SenaiteHandler: Searching ... {search_url}")
 
-        post_event(EventType.FORWARD_STREAM, id=order_uid, search_started=datetime.now(), connection="connected", activity="searching", message="")
+        post_event(EventType.FORWARD_STREAM, id=order_uid, search_started=datetime.now(), connection="connected", activity="searching", message=request_id)
         response = self.session.get(search_url)
         if response.status_code == 200:
             success = True
@@ -130,17 +130,24 @@ class SenaiteHandler:
         post_event(EventType.FORWARD_STREAM, id=order_uid, search_ended=datetime.now(), connection="connected", activity="idle", message="")
         return success, data
 
-    def update_resource(self, uid, payload, request_id: str):
+    def update_resource(self, uid, payload, request_id: str, order_uid: int):
         """ create a new resource in senaite: single or bundled """
         url = f"{self.api_url}/update/{uid}"
         logger.log("info", f"SenaiteHandler: Updating resource: {url} for {request_id} with {payload}")
+        success = True
+        response = None
+
+        post_event(EventType.FORWARD_STREAM, id=order_uid, update_started=datetime.now(), connection="connected", activity="submitting", message=request_id)
         response = self.session.post(url, json=payload)
         if response.status_code == 200:
+            success = True
             data = self.decode_response(response.text)
-            return True, data
         else:
+            success = False
             self.error_handler(url, response, request_id)
-            return False, self.decode_response(response.text)
+            data = self.decode_response(response.text)
+        post_event(EventType.FORWARD_STREAM, id=order_uid, update_ended=datetime.now(), connection="connected", activity="idle", message="")
+        return success, data
 
     @staticmethod
     def _one_for_keyword(values, keyword, is_eid):
@@ -217,11 +224,9 @@ class SenaiteHandler:
         }
 
         logger.log("info", f"SenaiteHandler:  ---submitting result--- ")
-        post_event(EventType.FORWARD_STREAM, id=order_uid, update_started=datetime.now(), connection="connected", activity="submitting", message="")
         submitted, submission = self.update_resource(
-            search_data.get("uid"), submit_payload, request_id
+            search_data.get("uid"), submit_payload, request_id, order_uid
         )
-        post_event(EventType.FORWARD_STREAM, id=order_uid, update_ended=datetime.now(), connection="connected", activity="idle", message="")
 
         if not submitted:
             logger.log("info", f"SenaiteHandler: Submission Response for checking : {submission}")
@@ -242,7 +247,7 @@ class SenaiteHandler:
 
             logger.log("info", f"SenaiteHandler:  ---verifying result---")
             verified, verification = self.update_resource(
-                submission_data.get("uid"), verify_payload, request_id
+                submission_data.get("uid"), verify_payload, request_id, order_uid
             )
 
             # DateVerified is not None, 'VerifiedBy': 'system_daemon'
