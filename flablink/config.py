@@ -1,5 +1,8 @@
 import os
 
+
+
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = f"{BASE_DIR}/public/"
 
@@ -12,4 +15,6 @@ DB_HOST = "localhost:3306"
 # SENAITE.JSONAPI
 SEND_TO_QUEUE = False
 
+# SEED
+SEED_LABLINK = True
 

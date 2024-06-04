@@ -7,8 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 
-from flablink.config import STATIC_DIR
-from flablink.gateway.seeder import seed_all
+from flablink.config import STATIC_DIR, SEED_LABLINK
 from flablink.gateway.extensions.event.register import observe_events
 from flablink.gateway.api import api
 from flablink.gateway.logger import Logger
@@ -18,9 +17,9 @@ from flablink.gateway.extensions.channel.base import Channels
 
 logger = Logger(__name__, __file__)
 
+
 # @asynccontextmanager
 # async def lifespan(app: FastAPI):
-#     seed_all()
 #     observe_events()
 #     init_bg_scheduler()
 #     yield
@@ -30,7 +29,6 @@ def register_app_events(app: FastAPI):
     @app.on_event("startup")
     def startup_event():
         logger.log("info", "Server starting up............................................")
-        seed_all()
         observe_events()  
         start_scheduler()
 
@@ -38,7 +36,6 @@ def register_app_events(app: FastAPI):
     def shutdown_event():
         logger.log("info", "Server shutting down............................................")
         shutdown_scheduler()
-
 
 
 def register_cors(app: FastAPI):
@@ -57,6 +54,7 @@ def register_cors(app: FastAPI):
 
 
 def register_routes(app: FastAPI):
+
     @app.get("/health", tags=["Health"], response_model=dict)
     async def get_health(request: Request):
         return {"up": True}
@@ -81,8 +79,13 @@ def register_websocket(app: FastAPI):
                 except Exception as e:
                     ...
 
-def create_app(config: dict):
+
+def create_app():
+    config = dict()
+    config["title"] = "Felicity LabLink"
+    config["description"] = "Serial and Socket Communication Gateway"
     # config["lifespan"] = lifespan
+    
     app = FastAPI(**config)
     register_cors(app)
     register_routes(app)

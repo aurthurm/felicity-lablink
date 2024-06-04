@@ -381,11 +381,11 @@ class ResultFowarder(FowardOrderHandler, SenaiteHandler):
 
         if not test_db_connection():
             logger.log("info", "ResultInterface: Failed to connect to db, backing off a little ...")
-            post_event(EventType.FORWARD_STREAM, id=None, connection="error", activity="test-database-connection", message="Failed to connect to the db")
+            post_event(EventType.FORWARD_STREAM, id=None, connection="error", activity="test-db-conn", message="Failed to connect to the db")
             return
 
         if not self.test_senaite_connection():
-            post_event(EventType.FORWARD_STREAM, id=None, connection="error", activity="test-senaite-connection", message="Failed to connect to senaite")
+            post_event(EventType.FORWARD_STREAM, id=None, connection="error", activity="test-lims-conn", message="Failed to connect to senaite")
             logger.log("info", "ResultInterface: Failed to connectto Senaite, backing off a little ...")
             return
         
