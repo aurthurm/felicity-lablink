@@ -22,11 +22,12 @@ Make sure you have Mysql/MariaDb installed
     flush privileges;
     
 
-Make sure you have installed Python 3.9.5 or higher and pip3 for this project:
-You can download Miniconda for ease of installation and accept licence and answer yes everywhere
+Download Miniconda and fix python to 3.11
 
     $ wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-s390x.sh
     $ bash Miniconda3-latest-Linux-s390x.sh
+    $ conda install python=3.11
+
 
 Check python version 
 
@@ -34,9 +35,13 @@ Check python version
     Python 3.x.x
     
     git clone https://github.com/NMRL-Zimbabwe/astm-improved.git
-    cd astm-improved && sudo su
+    cd astm-improved && git checkput hl7tcp
     pip3 install -r requirements.txt
-    pip3 install -e .
+
+
+Install the package as a simlink in order to local changes tracking:
+
+    $ pip install -e .
     
     
 Update configs 
@@ -45,7 +50,6 @@ Update configs
     nano config.py  # and update as necessary
     
 
-
 Make sure you have a working database before proceeding to this step
 
     # Run alembic migrations to generate our database tables
@@ -53,11 +57,11 @@ Make sure you have a working database before proceeding to this step
     bash ./al_upgrade.sh
 
 
-Install the package as a simlink in order to local changes tracking:
+Seed the Db with starter config data    
+    
+        $ nlablink seed
 
-    $ pip install -e .
-    
-    
+
 Check for the latest device connected to your computer by:
     
     $ s -lh /dev/
@@ -149,10 +153,11 @@ The same command, but without specifying the baudrate will give you the actual c
     speed 9600 baud; line = 0;
     -brkint -imaxbel
     
-Al should be up by now: Check
 
-    serial -s -p /dev/ttyUSB0
-    # Listening .... etc
+All should be up by now: Test your serial or tcptip conections (Nb: use Web interface for production)
+
+    nlablink serial --uid 0 --name AbbottM2000SP --code AbM200SP --path /dev/tty/USB0 --baud 9600 --protocol astm
+    nlablink tcpip  --uid 1 --name AbbotAlinityM --code AlinityM --address 192.167.24.33 --port 3120 --socket server --protocol hl7
     
     
 ### Serial Management with supervisor
@@ -174,48 +179,13 @@ open supervisor config file:
 
 Copy and Paste any of the following programs based on available serial devices 
 
-    [program:result_forward]
-    command=/usr/bin/python3 /usr/local/bin/serial -f
+    [program:nmrl_lablink]
+    command=/home/<user>/miniconda3/bin/python /home/<user>/miniconda3/bin/nlablink serve --host 0.0.0.0 --port 8080
     autostart=true
     autorestart=true
-    stderr_logfile=/var/log/result_forward.err.log
-    stdout_logfile=/var/log/result_forward.out.log
+    stderr_logfile=/var/log/nmrl_lablink.err.log
+    stdout_logfile=/var/log/nmrl_lablink.out.log
     
-    [program:serial_usb0]
-    command=/usr/bin/python3 /usr/local/bin/serial -s -p /dev/ttyUSB0
-    autostart=true
-    autorestart=true
-    stderr_logfile=/var/log/serial_usb0.err.log
-    stdout_logfile=/var/log/serial_usb0.out.log
-   
-    [program:serial_usb1]
-    command=/usr/bin/python3 /usr/local/bin/serial -s -p /dev/ttyUSB1
-    autostart=true
-    autorestart=true
-    stderr_logfile=/var/log/serial_usb1.err.log
-    stdout_logfile=/var/log/serial_usb1.out.log
-
-    [program:serial_s0]
-    command=/usr/bin/python3 /usr/local/bin/serial -s -p /dev/ttyS0
-    autostart=true
-    autorestart=true
-    stderr_logfile=/var/log/serial_s0.err.log
-    stdout_logfile=/var/log/serial_s0.out.log
-   
-    [program:serial_s1]
-    command=/usr/bin/python3 /usr/local/bin/serial -s -p /dev/ttyS1
-    autostart=true
-    autorestart=true
-    stderr_logfile=/var/log/serial_s1.err.log
-    stdout_logfile=/var/log/serial_s1.out.log
-
-
-If you used miniconda to install python modify the above `command` to point to miniconda accordingly.
-
-    command=/home/administrator/miniconda3/bin/python /home/administrator/miniconda3/bin/serial -f
-    command=/home/administrator/miniconda3/bin/python /home/administrator/miniconda3/bin/serial -s -p /dev/ttyUSB0
-    command=/home/administrator/miniconda3/bin/python /home/administrator/miniconda3/bin/serial -s -p /dev/ttyUSB1
-
    
 inform supervisor of our new programs:
 
@@ -240,18 +210,18 @@ reload all services
 
 reload or retart a single program:
     
-    $ sudo supervisorctl restart <program>
+    $ sudo supervisorctl restart nmrl_lablink
     
 
 tail error logs:
 
-    $ sudo supervisorctl tail -f <program> stderr
-    or tail -f /var/log/<program>.err.log
+    $ sudo supervisorctl tail -f nmrl_lablink stderr
+    or tail -f /var/log/nmrl_lablink.err.log
     
 tail output logs:
 
-    $ sudo supervisorctl tail -f <program> stdout
-    or tail -f /var/log/<program>.out.log
+    $ sudo supervisorctl tail -f nmrl_lablink stdout
+    or tail -f /var/log/nmrl_lablink.out.log
     
     
 View Serial Dashboard
