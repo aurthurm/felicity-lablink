@@ -31,10 +31,11 @@ export default function LimsCard({ forwarder }: any) {
         </div>
         <CardDescription>
           <span className="text-leading italic">
-            {(forwarder?.connection === "disconnected") 
-            ? "Disconnected" : (forwarder?.connection === "connecting")
-            ? "Connecting" : (forwarder?.trasmission === "searching") 
-            ? "Searching" : (forwarder?.trasmission === "submitting") ? "Submitting" : "Connected"}
+            {(forwarder?.connection === "disconnected")  ? "Disconnected" 
+            : (forwarder?.connection === "connecting") ? "Connecting" 
+            : (forwarder?.trasmission === "searching") ? "Searching" 
+            : (forwarder?.trasmission === "submitting") ? "Submitting"
+            : (forwarder?.connection === "connected") ? "Connected" : forwarder?.connection}
           </span>
         </CardDescription>
       </CardHeader>
