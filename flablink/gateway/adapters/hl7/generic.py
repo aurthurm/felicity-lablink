@@ -41,10 +41,11 @@ class GenericHl7Adapter(HL7BaseAdapter):
     @property
     def specimen_record(self):
         # SPM||BP23-04444||PLAS^plasma^HL70487|||||||P||||||||||||||||
+        # SPM|1|BP24-43182&ROCHE||PLAS^plasma^HL70487|||||||P^^HL70369
         specimen_type = self.get_field(self.raw_specimen_record, 4)
         return {
             "RecordTypeId": self.get_field(self.raw_specimen_record, 0),
-            "SpecimenId": self.get_field(self.raw_specimen_record, 2),
+            "SpecimenId": self.get_record_sub_component(self.raw_specimen_record, 2, 0, 0),
             "SpecimenTypeIdentifier": self.get_component(specimen_type, 0),
             "SpecimenTypeText": self.get_component(specimen_type, 1),
             "SpecimenTypeCoding": self.get_component(specimen_type, 2),

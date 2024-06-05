@@ -59,6 +59,10 @@ def tcpip(uid: int, name: str, code: str, address: str, port: int, socket: str, 
     link = SocketLink(instrument_config=cfg, emit_events=False)
     link.start_server()
 
+@app.command()
+def cobas5800():
+    from flablink.tests.test_transformer import cobas5800
+    cobas5800()
 
 @app.command()
 def serve(host:str="127.0.0.1", port:int=80):

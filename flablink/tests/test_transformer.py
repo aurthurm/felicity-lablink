@@ -60,6 +60,18 @@ def err():
     assert msg["instrument"] == "m2000"
     assert msg["keyword"] == "HIV1mlDBS"
 
+def cobas5800():
+    ms = """
+    MSH|^~\&|X800 DM||HOST||20240605131138+0200||OUL^R22^OUL_R22|454c959b-e993-4dac-b73a-c91d935e3a68|P|2.5.1|||NE|AL||UNICODE UTF-8|||LAB-29^IHE
+    SPM|1|BP24-43182&ROCHE||PLAS^plasma^HL70487|||||||P^^HL70369
+    SAC|||BP24-43182|||||||S05|13
+    OBR||||70241-5^HIV^LN
+    ORC|SC||||CM
+    OBX|1|ST|HIV^HIV^99ROC|1|Target Not Detected|^^UCUM||ND^^99ROC|||F|||||chishafu||c5800^Roche~c5800.1640^Roche|20240531212602||5-1640-20240531-1848||||||||RSLT
+    """
+    p = Transformer().adapter.process(ms)
+    print(p)
+
 if __name__ == "__main__":
     hpvTry()
     err()

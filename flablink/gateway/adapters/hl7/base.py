@@ -96,16 +96,28 @@ class HL7BaseAdapter:
     def get_components(self, field):
         return field and field.split(self.component_delimiter) or []
 
+    def get_sub_components(self, component):
+        return component and component.split(self.sub_component_delimiter) or []
+
     def get_component(self, field, index, default=None):
         comp = self.get_components(field)
         if index >= len(comp):
             return default
         return comp[index]
 
-    def get_record_component(self, record, field_index, component_index,
-                             default=None):
+    def get_sub_component(self, component, index, default=None):
+        sub_comps = self.get_sub_components(component)
+        if index >= len(sub_comps):
+            return default
+        return sub_comps[index]
+
+    def get_record_component(self, record, field_index, component_index, default=None):
         field = self.get_field(record, field_index)
         return self.get_component(field, component_index, default=default)
+
+    def get_record_sub_component(self, record, field_index, component_index, sub_component_index, default=None):
+        component = self.get_record_component(record, field_index, component_index, None)
+        return self.get_sub_component(component, sub_component_index, default=default)
 
     def has_header(self):
         if self.raw_header_record:

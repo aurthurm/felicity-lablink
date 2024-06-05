@@ -23,7 +23,6 @@ class MessageAdapter: # previously ASTMSerialHandler
         blocks = list(OrderedDict.fromkeys(blocks))
 
         msgs = []
-        print("blocks: ", blocks)
         for block in blocks:
             print("for block in blocks")
             msgs += self.adapt_message(block, protocol)
@@ -90,7 +89,6 @@ class MessageAdapter: # previously ASTMSerialHandler
             data = [data]
 
         # Bail-out items without id/keyword
-        logger.log("info", f"Bail-out: {data}")
         data = list(filter(lambda d: self.is_valid_data(d), data))
         if not data:
             logger.log("error", "Data is invalid: Either id/keyword is missing")
