@@ -30,7 +30,7 @@ class Transformer: # previously OrderService
                 "info", f"order for db:: order_id -> {order_id} -> result -> {order_result}")
             self.order_service.persist_order(instrument_uid, order, rawdata_uid)
 
-    def handle_replay(self, raw_data):
+    def replay_raw(self, raw_data):
         payloads = self.adapter.process(raw_data.content)
         if isinstance(payloads, dict):
             payloads = [payloads]
@@ -42,23 +42,19 @@ class Transformer: # previously OrderService
             order_result = order.get("result", None)
             logger.log(
                 "info", f"order for db:: order_id -> {order_id} -> result -> {order_result}")
-            self.order_service.persist_order(order, raw_data.uid)
+            self.order_service.persist_order(raw_data.instrument_uid, order, raw_data.uid)
 
-    def update_fix(self, raw_data):
+    def replay_order(self, order_data):
         """For updating old messages fix"""
-        payloads = self.adapter.process(raw_data.content)
+        payloads = self.adapter.process(order_data.raw_message)
         if isinstance(payloads, dict):
             payloads = [payloads]
 
         # persist message splits as orders
         for order in payloads:
             order = self._to_order(order)
-            logger.log("info", f"order for update: {order}")
-            self.order_service.update_order_fix({
-                "order_id": order['order_id'],
-                "result": order['result'],
-                "raw_message": order['raw_message']
-            }, raw_data.uid)
+            logger.log("info", f"order for update: {order_data.uid} : {order}")
+            self.order_service.update_order(order_data.uid, order)
 
     @staticmethod
     def _to_order(message):

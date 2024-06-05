@@ -15,22 +15,23 @@ def seed():
     seed_all()
 
 @app.command()
-def fix():
+def replay_orders():
     """Fix messages imported earlier"""
     from flablink.gateway.services.transformer import Transformer
-    raw_data = RawData.all()
-    for _raw in raw_data:
-        Transformer().update_fix(_raw)
+    orders = Order.all()
+    for _order in orders:
+        Transformer().replay_order(_order)
 
 @app.command()
-def replay():
+def replay_rawdata():
     """Replay results reimport from raw_data"""
+    from flablink.gateway.services.transformer import Transformer
     for _order in Order().all():
         _order.delete()
 
     raw_data = RawData.all()
     for _raw in raw_data:
-        Transformer().handle_replay(_raw)
+        Transformer().replay_raw(_raw)
 
 @app.command()
 def transform(message: str):

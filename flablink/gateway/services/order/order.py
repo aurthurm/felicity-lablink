@@ -67,20 +67,14 @@ class OrderService(BaseService[Order]):
             "sync_comment": "Incorrect Sample Id" if hspc else None
         })
 
-    def update_order_fix(self, order: Order, raw_data_uid: int):
-        order_id = order["order_id"]
-        filters = {
-            'order_id': order_id
-        }
-        found = self.model.get(**filters)
+    def update_order(self, uid, order: dict):
+        found = self.model.get(uid=uid)
         if not found:
-            logger.log(
-                "info", f"order with the same order_id ({order_id}) is does not exist, skipping ...")
+            logger.log("info", f"order with the same uid ({uid}) is does not exist, skipping ...")
             return
 
-        hspc = has_special_char(order_id)
+        hspc = has_special_char(order.get("order_id", ""))
         found.update(**{
-            "raw_data_uid": raw_data_uid,
             **order,
             "synced": 2 if hspc else 0,
             "sync_comment": "Incorrect Sample Id" if hspc else None
