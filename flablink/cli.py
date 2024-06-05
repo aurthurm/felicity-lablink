@@ -61,6 +61,11 @@ def tcpip(uid: int, name: str, code: str, address: str, port: int, socket: str, 
     link.start_server()
 
 @app.command()
+def test_transform(instrument: str = None):
+    from flablink.tests.test_transformer import test_message
+    test_message(instrument)
+
+@app.command()
 def serve(host:str="127.0.0.1", port:int=80):
     uvicorn.run("flablink.main:app", host=host, port=port, reload=False)
 

@@ -142,6 +142,7 @@ class RocheCOBAS68008800Hl7Adapter(HL7BaseAdapter):
         data = {}
         data["id"] = self.specimen_record["SpecimenId"]
         data["keyword"] = self.test_code_record["UniversalServiceText"]
+        data["instrument"] = self.observation_record["EquipmentInstanceIdentifier"]
         data["result"] = self.observation_record["ObservationValue"]
         data["capture_date"] = self.observation_record["DateTimeofAnalysis"]
         data["raw_message"] = self.message
