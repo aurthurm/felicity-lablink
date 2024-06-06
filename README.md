@@ -1,56 +1,36 @@
-# Serial to SQL Database Instrument Interface
+# Felicity Web Based Instrument Interface
 
 This package provides a command line interface for:
 1. RS-232 device connection.
-2. Direct serial port read
+2. MLLP client and Server
 
 
 ## Setup
 
-Make sure you have Mysql/MariaDb installed
+Make sure you have MariaDb installed
 
     create databse create database db_name;
-
-    # create user if you are using mysql: 
-    create user 'username'@'%' identified with mysql_native_password by '<password>'; 
-    GRANT ALL PRIVILEGES ON db_name.* TO 'username'@'%';
     
-    # create user if you are using mariadb 
     grant all privileges on databse_name.* TO 'username'@'%' identified by '<password>';
 
-    # finally 
     flush privileges;
     
 
-Make sure you have installed Python 3.9.5 or higher and pip3 for this project:
-You can download Miniconda for ease of installation and accept licence and answer yes everywhere
+Download Miniconda and fix python to 3.11
 
     $ wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-s390x.sh
     $ bash Miniconda3-latest-Linux-s390x.sh
+    $ conda install python=3.11
+
 
 Check python version 
 
     $ python3 --version or python --version
     Python 3.x.x
     
-    git clone https://github.com/NMRL-Zimbabwe/astm-improved.git
-    cd astm-improved && sudo su
+    git clone https://github.com/beak-insights/felicity-lablink.git
+    cd felicity-lablink && git checkput hl7tcp
     pip3 install -r requirements.txt
-    pip3 install -e .
-    
-    
-Update configs 
-
-    cd astm-improved/src/felicity/
-    nano config.py  # and update as necessary
-    
-
-
-Make sure you have a working database before proceeding to this step
-
-    # Run alembic migrations to generate our database tables
-    cd astm-improved/src/felicity/
-    bash ./al_upgrade.sh
 
 
 Install the package as a simlink in order to local changes tracking:
@@ -58,10 +38,34 @@ Install the package as a simlink in order to local changes tracking:
     $ pip install -e .
     
     
+Update configs 
+
+    cd felicity-lablink/src/flablink/
+    nano config.py  # and update as necessary
+    
+
+Make sure you have a working database before proceeding to this step
+
+    # Run alembic migrations to generate our database tables
+    cd felicity-lablink/src/flablink/
+    bash ./al_upgrade.sh
+
+
+Seed the Db with starter config data    
+    
+        $ nlablink seed
+
+
 Check for the latest device connected to your computer by:
     
     $ s -lh /dev/
     
+
+### add user to dialout
+You might get a permission denied to accedd usb and serial ports: Add and reboot
+
+    $ sudo gpasswd -a $USER dialout or sudo usermod -a -G dialout $USER
+
 
 ### Simulation Tests
 Simulation test with socat:
@@ -144,10 +148,11 @@ The same command, but without specifying the baudrate will give you the actual c
     speed 9600 baud; line = 0;
     -brkint -imaxbel
     
-Al should be up by now: Check
 
-    serial -s -p /dev/ttyUSB0
-    # Listening .... etc
+All should be up by now: Test your serial or tcptip conections (Nb: use Web interface for production)
+
+    flablink serial --uid 0 --name AbbottM2000SP --code AbM200SP --path /dev/tty/USB0 --baud 9600 --protocol astm
+    flablink tcpip  --uid 1 --name AbbotAlinityM --code AlinityM --address 192.167.24.33 --port 3120 --socket server --protocol hl7
     
     
 ### Serial Management with supervisor
@@ -164,53 +169,18 @@ check status:
     
 open supervisor config file:
 
-    $ sudo nano /etc/supervisor/conf.d/astm_serial.conf
+    $ sudo nano /etc/supervisor/conf.d/felicity_lablink.conf
     
 
 Copy and Paste any of the following programs based on available serial devices 
 
-    [program:result_forward]
-    command=/usr/bin/python3 /usr/local/bin/serial -f
+    [program:felicity_lablink]
+    command=/home/<user>/miniconda3/bin/python /home/<user>/miniconda3/bin/flablink serve --host 0.0.0.0 --port 8080
     autostart=true
     autorestart=true
-    stderr_logfile=/var/log/result_forward.err.log
-    stdout_logfile=/var/log/result_forward.out.log
+    stderr_logfile=/var/log/felicity_lablink.err.log
+    stdout_logfile=/var/log/felicity_lablink.out.log
     
-    [program:serial_usb0]
-    command=/usr/bin/python3 /usr/local/bin/serial -s -p /dev/ttyUSB0
-    autostart=true
-    autorestart=true
-    stderr_logfile=/var/log/serial_usb0.err.log
-    stdout_logfile=/var/log/serial_usb0.out.log
-   
-    [program:serial_usb1]
-    command=/usr/bin/python3 /usr/local/bin/serial -s -p /dev/ttyUSB1
-    autostart=true
-    autorestart=true
-    stderr_logfile=/var/log/serial_usb1.err.log
-    stdout_logfile=/var/log/serial_usb1.out.log
-
-    [program:serial_s0]
-    command=/usr/bin/python3 /usr/local/bin/serial -s -p /dev/ttyS0
-    autostart=true
-    autorestart=true
-    stderr_logfile=/var/log/serial_s0.err.log
-    stdout_logfile=/var/log/serial_s0.out.log
-   
-    [program:serial_s1]
-    command=/usr/bin/python3 /usr/local/bin/serial -s -p /dev/ttyS1
-    autostart=true
-    autorestart=true
-    stderr_logfile=/var/log/serial_s1.err.log
-    stdout_logfile=/var/log/serial_s1.out.log
-
-
-If you used miniconda to install python modify the above `command` to point to miniconda accordingly.
-
-    command=/home/administrator/miniconda3/bin/python /home/administrator/miniconda3/bin/serial -f
-    command=/home/administrator/miniconda3/bin/python /home/administrator/miniconda3/bin/serial -s -p /dev/ttyUSB0
-    command=/home/administrator/miniconda3/bin/python /home/administrator/miniconda3/bin/serial -s -p /dev/ttyUSB1
-
    
 inform supervisor of our new programs:
 
@@ -235,25 +205,18 @@ reload all services
 
 reload or retart a single program:
     
-    $ sudo supervisorctl restart <program>
+    $ sudo supervisorctl restart felicity_lablink
     
 
 tail error logs:
 
-    $ sudo supervisorctl tail -f <program> stderr
-    or tail -f /var/log/<program>.err.log
+    $ sudo supervisorctl tail -f felicity_lablink stderr
+    or tail -f /var/log/felicity_lablink.err.log
     
 tail output logs:
 
-    $ sudo supervisorctl tail -f <program> stdout
-    or tail -f /var/log/<program>.out.log
+    $ sudo supervisorctl tail -f felicity_lablink stdout
+    or tail -f /var/log/felicity_lablink.out.log
     
-    
-View Serial Dashboard
-    
-    $ serial -d
-    
-   
-Navigate to the dashboard [http://127.0.0.1:9999](http://127.0.0.1:9999)
-    
+       
 Done!
