@@ -20,6 +20,8 @@ def get_lims_settings() -> LimsSettings:
     if not lss:
         raise Exception("LIMS Settings are required")
     return lss
+
+
 LIMS_SETTINGS = get_lims_settings()
 
 
@@ -29,6 +31,8 @@ def get_link_settings() -> LinkSettings:
     if not lss:
         raise Exception("LINK Settings are required")
     return lss
+
+
 LINK_SETTINGS = get_link_settings()
 
 
@@ -36,10 +40,12 @@ LINK_SETTINGS = get_link_settings()
 def get_translations():
     translation_service = ResultTranslationService()
     translations = translation_service.find_all()
-    INTEPRETATIONS = {}
+    interpretations = {}
     for _item in translations:
-        INTEPRETATIONS[_item.original] = _item.translated
-    return INTEPRETATIONS
+        interpretations[_item.original] = _item.translated
+    return interpretations
+
+
 INTEPRETATIONS = get_translations()
 
 
@@ -47,10 +53,13 @@ INTEPRETATIONS = get_translations()
 def get_keyword_mappings():
     re_service = KeywordMappingService()
     mappings = re_service.find_all()
-    KEYWORDS_MAPPING = {}
+    kw_mappings = {}
     for _item in mappings:
-        KEYWORDS_MAPPING[_item.keyword] = ','.join(_item.mappings)
-    return KEYWORDS_MAPPING
+        _mapped = _item.mappings.split(",") if _item.mappings else []
+        kw_mappings[_item.keyword] = [mp.strip() for mp in _mapped]
+    return kw_mappings
+
+
 KEYWORDS_MAPPING = get_keyword_mappings()
 
 
@@ -59,4 +68,6 @@ def get_exclusions():
     re_service = ResultExclusionsService()
     exclusions = re_service.find_all()
     return list(map(lambda x: x.result, exclusions))
+
+
 EXCLUDE_RESULTS = get_exclusions()
