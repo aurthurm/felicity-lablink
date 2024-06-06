@@ -1,4 +1,4 @@
-# NMRL Serial to SQL Database Instrument Interface
+# Serial to SQL Database Instrument Interface
 
 This package provides a command line interface for:
 1. RS-232 device connection.
