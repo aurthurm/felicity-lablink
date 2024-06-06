@@ -53,7 +53,7 @@ Make sure you have a working database before proceeding to this step
 
 Seed the Db with starter config data    
     
-        $ nlablink seed
+        $ flablink seed
 
 
 Check for the latest device connected to your computer by:
