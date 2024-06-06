@@ -1,4 +1,4 @@
-# NMRL Serial to SQL Database Instrument Interface
+# Serial to SQL Database Instrument Interface
 
 This package provides a command line interface for:
 1. RS-232 device connection.
@@ -34,8 +34,8 @@ Check python version
     $ python3 --version or python --version
     Python 3.x.x
     
-    git clone https://github.com/NMRL-Zimbabwe/astm-improved.git
-    cd astm-improved && git checkput hl7tcp
+    git clone https://github.com/beak-insights/felicity-lablink.git
+    cd felicity-lablink && git checkput hl7tcp
     pip3 install -r requirements.txt
 
 
@@ -174,17 +174,17 @@ check status:
     
 open supervisor config file:
 
-    $ sudo nano /etc/supervisor/conf.d/astm_serial.conf
+    $ sudo nano /etc/supervisor/conf.d/felicity_serial.conf
     
 
 Copy and Paste any of the following programs based on available serial devices 
 
-    [program:nmrl_lablink]
+    [program:felicity_lablink]
     command=/home/<user>/miniconda3/bin/python /home/<user>/miniconda3/bin/nlablink serve --host 0.0.0.0 --port 8080
     autostart=true
     autorestart=true
-    stderr_logfile=/var/log/nmrl_lablink.err.log
-    stdout_logfile=/var/log/nmrl_lablink.out.log
+    stderr_logfile=/var/log/felicity_lablink.err.log
+    stdout_logfile=/var/log/felicity_lablink.out.log
     
    
 inform supervisor of our new programs:
@@ -210,23 +210,18 @@ reload all services
 
 reload or retart a single program:
     
-    $ sudo supervisorctl restart nmrl_lablink
+    $ sudo supervisorctl restart felicity_lablink
     
 
 tail error logs:
 
-    $ sudo supervisorctl tail -f nmrl_lablink stderr
-    or tail -f /var/log/nmrl_lablink.err.log
+    $ sudo supervisorctl tail -f felicity_lablink stderr
+    or tail -f /var/log/felicity_lablink.err.log
     
 tail output logs:
 
-    $ sudo supervisorctl tail -f nmrl_lablink stdout
-    or tail -f /var/log/nmrl_lablink.out.log
-    
-    
-View Serial Dashboard
-    
-    $ serial -d
+    $ sudo supervisorctl tail -f felicity_lablink stdout
+    or tail -f /var/log/felicity_lablink.out.log
     
    
 Navigate to the dashboard [http://127.0.0.1:9999](http://127.0.0.1:9999)
