@@ -5,9 +5,9 @@ from setuptools import setup, find_packages
 version = "2.0.0.rc01"
 
 setup(
-    name="NMRL LabLink",
+    name="Felicity LabLink",
     version=version,
-    description="NMRL LabLink unites lab instruments and LIMS, streamlining workflows and bringing joy to your lab's day.",
+    description="Felicity LabLink unites lab instruments and LIMS, streamlining workflows and bringing joy to your lab's day.",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     license="MIT",
@@ -20,7 +20,7 @@ setup(
     author="Aurthur Musendame",
     author_email="aurthurmusendame@gmail.com",
     url="",
-    packages=find_packages(include=['nlablink', 'nlablink.link', 'nlablink.*']),
+    packages=find_packages(include=['flablink', 'flablink.link', 'flablink.*']),
     include_package_data=True,
     zip_safe=False,
     install_requires=[
@@ -49,6 +49,6 @@ setup(
         ]
     },
     entry_points={
-        "console_scripts": ["nlablink=flablink.cli:main"]
+        "console_scripts": ["flablink=flablink.cli:main"]
     }
 )

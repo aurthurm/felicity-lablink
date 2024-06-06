@@ -1,24 +1,18 @@
-# Serial to SQL Database Instrument Interface
+# Felicity Web Based Instrument Interface
 
 This package provides a command line interface for:
 1. RS-232 device connection.
-2. Direct serial port read
+2. MLLP client and Server
 
 
 ## Setup
 
-Make sure you have Mysql/MariaDb installed
+Make sure you have MariaDb installed
 
     create databse create database db_name;
-
-    # create user if you are using mysql: 
-    create user 'username'@'%' identified with mysql_native_password by '<password>'; 
-    GRANT ALL PRIVILEGES ON db_name.* TO 'username'@'%';
     
-    # create user if you are using mariadb 
     grant all privileges on databse_name.* TO 'username'@'%' identified by '<password>';
 
-    # finally 
     flush privileges;
     
 
@@ -46,14 +40,14 @@ Install the package as a simlink in order to local changes tracking:
     
 Update configs 
 
-    cd astm-improved/src/felicity/
+    cd felicity-lablink/src/flablink/
     nano config.py  # and update as necessary
     
 
 Make sure you have a working database before proceeding to this step
 
     # Run alembic migrations to generate our database tables
-    cd astm-improved/src/felicity/
+    cd felicity-lablink/src/flablink/
     bash ./al_upgrade.sh
 
 
@@ -69,6 +63,7 @@ Check for the latest device connected to your computer by:
 
 ### add user to dialout
 You might get a permission denied to accedd usb and serial ports: Add and reboot
+
     $ sudo gpasswd -a $USER dialout or sudo usermod -a -G dialout $USER
 
 
@@ -156,8 +151,8 @@ The same command, but without specifying the baudrate will give you the actual c
 
 All should be up by now: Test your serial or tcptip conections (Nb: use Web interface for production)
 
-    nlablink serial --uid 0 --name AbbottM2000SP --code AbM200SP --path /dev/tty/USB0 --baud 9600 --protocol astm
-    nlablink tcpip  --uid 1 --name AbbotAlinityM --code AlinityM --address 192.167.24.33 --port 3120 --socket server --protocol hl7
+    flablink serial --uid 0 --name AbbottM2000SP --code AbM200SP --path /dev/tty/USB0 --baud 9600 --protocol astm
+    flablink tcpip  --uid 1 --name AbbotAlinityM --code AlinityM --address 192.167.24.33 --port 3120 --socket server --protocol hl7
     
     
 ### Serial Management with supervisor
@@ -174,13 +169,13 @@ check status:
     
 open supervisor config file:
 
-    $ sudo nano /etc/supervisor/conf.d/felicity_serial.conf
+    $ sudo nano /etc/supervisor/conf.d/felicity_lablink.conf
     
 
 Copy and Paste any of the following programs based on available serial devices 
 
     [program:felicity_lablink]
-    command=/home/<user>/miniconda3/bin/python /home/<user>/miniconda3/bin/nlablink serve --host 0.0.0.0 --port 8080
+    command=/home/<user>/miniconda3/bin/python /home/<user>/miniconda3/bin/flablink serve --host 0.0.0.0 --port 8080
     autostart=true
     autorestart=true
     stderr_logfile=/var/log/felicity_lablink.err.log
@@ -223,7 +218,5 @@ tail output logs:
     $ sudo supervisorctl tail -f felicity_lablink stdout
     or tail -f /var/log/felicity_lablink.out.log
     
-   
-Navigate to the dashboard [http://127.0.0.1:9999](http://127.0.0.1:9999)
-    
+       
 Done!
